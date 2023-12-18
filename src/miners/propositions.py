@@ -1,6 +1,7 @@
-from .base import BaseMiner
+from src.miners.base import BaseMiner
 import asyncio
 import aiohttp
+import pandas as pd
 
 
 class ProposalsMiner(BaseMiner):
@@ -12,32 +13,44 @@ class ProposalsMiner(BaseMiner):
             **kwargs: Additional arguments.
         """
         super().__init__(name='Proposals', log_file='logs/proposals.log', **kwargs)
-        self.base_url = 'https://dadosabertos.camara.leg.br/api/v2/'
-        self.endpoint = 'proposicoes'
+        self.proposal_types = ["PL", "PEC", "PLN", "PLP", "PLV", "PLC"]
+        self.output_path = "data/proposals/"
+        self.years = list(range(2000, 2024))
 
-    async def get_proposals(self) -> dict:
-        target_proposals = ["PL", "PEC", "PLN", "PLP", "PLV", "PLC"]
-        target_proposals = ",".join(target_proposals)
-        years = [year for year in range(2000, 2024)]
-        years = ",".join([str(year) for year in years])
-        params = {
-            'itens': 1000,
-            'ordem': 'ASC',
-            'ordenarPor': 'id',
-            'siglaTipo': target_proposals,
-            'ano': years,
-        }
-        headers = {
-            'accept': 'application/json',
-        }
-        url = f'{self.base_url}{self.endpoint}?itens=1000&ordem=ASC&ordenarPor=id&siglaTipo=PL,PEC,PLN,PLP,PLV,PLC&ano=2000&ano=2001&ano=2002&ano=2003&ano=2004&ano=2005&ano=2006&ano=2007&ano=2008&ano=2009&ano=2010&ano=2011&ano=2012&ano=2013&ano=2014&ano=2015&ano=2016&ano=2017&ano=2018&ano=2019&ano=2020&ano=2021&ano=2022&ano=2023'
+    async def get_proposals(self, year):
+        download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoes/csv/proposicoes-{year}.csv"
+        url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
-            data = await self.fetch_all_pages(url, headers, {}, session)
+            response = await session.get(url)
+            with open(f"{self.output_path}proposals-{year}.csv", "wb") as f:
+                f.write(await response.read())
+            self.logger.info(f"Finished downloading proposals for year {year}.")
 
-        return data
+    def create_dataframe(self):
+        proposals = pd.DataFrame()
+        for year in self.years:
+            proposal = pd.read_csv(f"{self.output_path}proposals-{year}.csv", sep=";")                   
+            proposal = proposal[['id', 'ultimoStatus_idSituacao', 'siglaTipo', 'ano', 'ementa', 'keywords']]
+            proposal = proposal[proposal['siglaTipo'].isin(self.proposal_types)]
+            proposal['keywords'] = proposal['keywords'].str.replace("\n", " ")
+            proposal['keywords'] = proposal['keywords'].str.replace("\r", " ")
+            proposal['ultimoStatus_idSituacao'] = proposal['ultimoStatus_idSituacao'].fillna(0.0).astype(int)
+            proposals = pd.concat([proposals, proposal])
 
-    def mine(self) -> None:
+        proposals.to_csv(f"{self.output_path}proposals.csv", index=False)
+        self.proposals = proposals
+
+    def mine(self):
         """
-        Mine the API.
+        Mine the API for proposals.
         """
-        pass
+        tasks = []
+        for year in self.years:
+            tasks.append(self.get_proposals(year))
+        asyncio.run(asyncio.wait(tasks))
+        self.create_dataframe()
+        self.logger.info("Finished mining proposals.")
+
+if __name__ == "__main__":
+    miner = ProposalsMiner()
+    miner.mine()
