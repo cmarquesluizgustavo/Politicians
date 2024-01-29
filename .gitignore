@@ -1,4 +1,8 @@
 /data
 /logs
-/lr
 /plots
+
+__pycache__/
+/__pycache__
+src/miners/__pycache__
+src/__pycache__
