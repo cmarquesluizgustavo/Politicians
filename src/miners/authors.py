@@ -29,10 +29,15 @@ class AuthorsMiner(BaseMiner):
     def create_dataframe(self):
         authors = pd.DataFrame()
         for year in self.years:
-            author = pd.read_csv(f"{self.output_path}authors-{year}.csv", sep=";")                   
+            author = pd.read_csv(f"{self.output_path}authors-{year}.csv", sep=";")
             author = author[['idProposicao', 'uriAutor', 'nomeAutor']]
+            author['year'] = year
             authors = pd.concat([authors, author])
 
+        authors = authors.dropna(subset=['uriAutor'])
+        authors['type'] = authors['uriAutor'].apply(lambda x: x.split("/")[-2])
+        authors['id'] = authors['uriAutor'].apply(lambda x: x.split("/")[-1])
+        authors = authors.drop(columns=['uriAutor'])
         authors.to_csv(f"{self.output_path}authors.csv", index=False)
         self.authors = authors
 

@@ -4,7 +4,7 @@ import aiohttp
 import pandas as pd
 from src.miners.base import BaseMiner
 
-class CongressAPI(BaseMiner):
+class CongressPeople(BaseMiner):
     def __init__(self) -> None:
         """
         CongressAPI constructor.
@@ -135,16 +135,19 @@ class CongressAPI(BaseMiner):
         df = pd.DataFrame(congresspeople)
         msg = f"Created dataframe with {len(df)} congresspeople. {len(congresspeople)} were expected."
         self.logger.info(msg)
-        df = df[['id', 'nomeCivil', 'nomeEleitoral', 'ufNascimento', 'escolaridade', 
+        df = df[['id', 'nomeCivil', 'nomeEleitoral', 'ufNascimento', 'escolaridade', 'dataNascimento',
                  'sexo', 'cpf', 'redeSocial', 'siglaUf', 'siglaPartido', 'idLegislatura']]
         df.to_csv('data/congresspeople/congresspeople.csv', index=False)
         return df
     
     def mine(self) -> pd.DataFrame:
+        """
+        Mine congresspeople data.
+        """
         congresspeople = asyncio.run(self.get_all_congresspeople_details())
         congresspeople = self.create_dataframe(congresspeople)
         return congresspeople
 
 if __name__ == '__main__':
-    api = CongressAPI()
+    api = CongressPeople()
     congresspeople = api.mine()

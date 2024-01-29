@@ -144,6 +144,9 @@ class BaseLogger(logging.Logger):
 
 # Example usage:
 class MyMiner(BaseMiner):
+    def __init__(self, **kwargs):
+        super().__init__(name="MyMiner", log_level=logging.DEBUG, log_file="miner.log", **kwargs)
+        
     async def mine(self):
         # Implement your mining logic here
         pass

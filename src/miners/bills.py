@@ -4,7 +4,7 @@ import aiohttp
 import pandas as pd
 
 
-class ProposalsMiner(BaseMiner):
+class BillsMiner(BaseMiner):
     def __init__(self, **kwargs):
         """
         Initialize the ProposalsMiner.
@@ -52,5 +52,5 @@ class ProposalsMiner(BaseMiner):
         self.logger.info("Finished mining proposals.")
 
 if __name__ == "__main__":
-    miner = ProposalsMiner()
+    miner = BillsMiner()
     miner.mine()
