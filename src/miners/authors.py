@@ -14,22 +14,28 @@ class AuthorsMiner(BaseMiner):
         """
         super().__init__(name='Authors', log_file='logs/authors.log', **kwargs)
         self.output_path = "data/authors/"
-        self.years = list(range(2000, 2024))
+        self.years = list(range(2000, 2025))
         os.makedirs(f"{self.output_path}/", exist_ok=True)
 
-    async def get_authors(self, year):
+    async def get_authors(self, year, rerun=False):
         download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/csv/proposicoesAutores-{year}.csv"
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)
-            with open(f"{self.output_path}authors-{year}.csv", "wb") as f:
+            with open(f"{self.output_path}{year}.csv", "wb") as f:
                 f.write(await response.read())
-            self.logger.info(f"Finished downloading authors for year {year}.")
+
+        if os.path.getsize(f"{self.output_path}{year}.csv") == 0:
+            if rerun: raise Exception(f"File for year {year} was empty. Rerun failed.")
+            self.logger.info(f"File for year {year} was empty. Rerunning...")
+            await self.get_authors(year, rerun=True)
+
+        if not rerun: self.logger.info(f"Finished downloading authors for year {year}.")
 
     def create_dataframe(self):
         authors = pd.DataFrame()
         for year in self.years:
-            author = pd.read_csv(f"{self.output_path}authors-{year}.csv", sep=";")
+            author = pd.read_csv(f"{self.output_path}{year}.csv", sep=";", low_memory=False)
             author = author[['idProposicao', 'uriAutor', 'nomeAutor']]
             author['year'] = year
             authors = pd.concat([authors, author])

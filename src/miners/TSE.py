@@ -39,7 +39,7 @@ class TSEReportsMiner(BaseMiner):
         for year in self.years:
             for file in os.listdir(f"{self.output_path}candidates-{year}/"):
                 if not file.endswith("_BRASIL.csv"): continue
-                candidate = pd.read_csv(f"{self.output_path}candidates-{year}/{file}", sep=";", encoding='latin-1')
+                candidate = pd.read_csv(f"{self.output_path}candidates-{year}/{file}", sep=";", encoding='latin-1', low_memory=False)
                 candidate = candidate[candidate['DS_CARGO'] == 'DEPUTADO FEDERAL']
                 candidate = candidate[['ANO_ELEICAO', 'NM_UE', 'DS_CARGO', 'NM_CANDIDATO', 'SG_PARTIDO', 'DS_GENERO', 'DS_GRAU_INSTRUCAO', 'DS_ESTADO_CIVIL', 'DS_COR_RACA', 'DS_OCUPACAO', 'DS_SIT_TOT_TURNO', "DT_NASCIMENTO", 'NR_CPF_CANDIDATO']]
                 candidates = pd.concat([candidates, candidate])

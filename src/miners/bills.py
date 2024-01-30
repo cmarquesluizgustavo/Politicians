@@ -31,7 +31,7 @@ class BillsMiner(BaseMiner):
         proposals = pd.DataFrame()
         for year in self.years:
             try:
-                proposal = pd.read_csv(f"{self.output_path}proposals-{year}.csv", sep=";")                   
+                proposal = pd.read_csv(f"{self.output_path}proposals-{year}.csv", sep=";", low_memory=False)                   
             except:
                 self.logger.error(f"Could not find proposals for year {year}.")
                 continue
