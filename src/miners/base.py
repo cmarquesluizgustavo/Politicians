@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
-
+import os
 
 class BaseMiner(ABC):
     def __init__(self, name: str, log_level: int = logging.INFO, log_file: str = None, **kwargs):
@@ -112,7 +112,7 @@ class BaseMiner(ABC):
 
 
 class BaseLogger(logging.Logger):
-    def __init__(self, log_level: int = logging.INFO, log_file: str = None, **kwargs):
+    def __init__(self, name, log_level: int = logging.INFO, log_file: str = None, **kwargs):
         """
         Initialize the BaseLogger.
 
@@ -122,9 +122,9 @@ class BaseLogger(logging.Logger):
             **kwargs: Additional arguments.
         """
         super().__init__(kwargs.get('logger', 'BaseLogger'))
-        self.handle_logging(log_level, log_file, kwargs.get('terminal', False))
+        self.handle_logging(name, log_level, log_file, kwargs.get('terminal', False))
 
-    def handle_logging(self, log_level, log_file, terminal) -> None:
+    def handle_logging(self, name, log_level, log_file, terminal) -> None:
         """
         Set up logging configurations.
 
@@ -134,12 +134,13 @@ class BaseLogger(logging.Logger):
             terminal (bool): Whether to log to the terminal.
         """
         self.log_level = log_level
-        self.log_file = log_file
+        self.log_file  = log_file
+        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
         self.setLevel(self.log_level)
         self.addHandler(logging.FileHandler(self.log_file))
         if terminal:
             self.addHandler(logging.StreamHandler())
-        self.info(f"Initializing logger - Log level: {self.log_level} - Log file: {self.log_file}")
+        self.info(f"Initializing logger {name} - Log level: {self.log_level} - Log file: {self.log_file}")
 
 
 # Example usage:
@@ -153,4 +154,5 @@ class MyMiner(BaseMiner):
 
 
 # Instantiate and use your miner
-miner = MyMiner(name="MyMiner", log_level=logging.DEBUG, log_file="miner.log")
+if __name__ == '__main__':
+    miner = MyMiner()

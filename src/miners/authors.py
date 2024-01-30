@@ -1,8 +1,8 @@
-from src.miners.base import BaseMiner
+import os
 import asyncio
 import aiohttp
 import pandas as pd
-
+from base import BaseMiner
 
 class AuthorsMiner(BaseMiner):
     def __init__(self, **kwargs):
@@ -15,7 +15,7 @@ class AuthorsMiner(BaseMiner):
         super().__init__(name='Authors', log_file='logs/authors.log', **kwargs)
         self.output_path = "data/authors/"
         self.years = list(range(2000, 2024))
-
+        os.makedirs(f"{self.output_path}/", exist_ok=True)
 
     async def get_authors(self, year):
         download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/csv/proposicoesAutores-{year}.csv"
@@ -38,17 +38,22 @@ class AuthorsMiner(BaseMiner):
         authors['type'] = authors['uriAutor'].apply(lambda x: x.split("/")[-2])
         authors['id'] = authors['uriAutor'].apply(lambda x: x.split("/")[-1])
         authors = authors.drop(columns=['uriAutor'])
+
         authors.to_csv(f"{self.output_path}authors.csv", index=False)
         self.authors = authors
+
+    async def run_tasks(self):
+        tasks = []
+        for year in self.years:
+            tasks.append(asyncio.create_task(self.get_authors(year)))
+        
+        await asyncio.gather(*tasks)
 
     def mine(self):
         """
         Mine the API for authors.
         """
-        tasks = []
-        for year in self.years:
-            tasks.append(self.get_authors(year))
-        asyncio.run(asyncio.wait(tasks))
+        asyncio.run(self.run_tasks())
         self.create_dataframe()
         self.logger.info("Finished mining authors.")
 

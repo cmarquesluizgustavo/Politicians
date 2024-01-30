@@ -1,8 +1,9 @@
+import os
 import asyncio
 import logging
 import aiohttp
 import pandas as pd
-from src.miners.base import BaseMiner
+from base import BaseMiner
 
 class CongressPeople(BaseMiner):
     def __init__(self) -> None:
@@ -17,10 +18,10 @@ class CongressPeople(BaseMiner):
         super().__init__(name='Authors', log_file='logs/congresspeople.log', terminal=True)
         self.output_path = "data/congresspeople/"
         self.base_url = 'https://dadosabertos.camara.leg.br/api/v2/'
+        os.makedirs(self.output_path, exist_ok=True)
 
         # Configure logger
         
-
     async def fetch_congresspeople_basic_info(self) -> list:
         """
         Fetch congresspeople basic infos asynchronously.
@@ -137,15 +138,17 @@ class CongressPeople(BaseMiner):
         self.logger.info(msg)
         df = df[['id', 'nomeCivil', 'nomeEleitoral', 'ufNascimento', 'escolaridade', 'dataNascimento',
                  'sexo', 'cpf', 'redeSocial', 'siglaUf', 'siglaPartido', 'idLegislatura']]
-        df.to_csv('data/congresspeople/congresspeople.csv', index=False)
+        df.to_csv('data/congresspeople/congresspeople.csv', index=False, encoding='utf-8')
         return df
     
     def mine(self) -> pd.DataFrame:
         """
         Mine congresspeople data.
         """
+        self.logger.info("Mining congresspeople data...")
         congresspeople = asyncio.run(self.get_all_congresspeople_details())
         congresspeople = self.create_dataframe(congresspeople)
+        self.logger.info(f"Finished mining congresspeople data. {len(congresspeople)} congresspeople were mined.")
         return congresspeople
 
 if __name__ == '__main__':

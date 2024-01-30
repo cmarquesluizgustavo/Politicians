@@ -1,8 +1,8 @@
-from src.miners.base import BaseMiner
 import os
 import asyncio
 import aiohttp
 import pandas as pd
+from base import BaseMiner
 
 
 class TSEReportsMiner(BaseMiner):
@@ -16,7 +16,7 @@ class TSEReportsMiner(BaseMiner):
         super().__init__(name='TSEReports', log_file='logs/TSE_reports.log', **kwargs)
         self.output_path = "data/candidates/"
         self.years = list(range(2002, 2024, 4))
-
+        os.makedirs(f"{self.output_path}/", exist_ok=True)
 
     async def get_candidates_zip(self, year):
         download_link = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_{year}.zip"
@@ -44,17 +44,23 @@ class TSEReportsMiner(BaseMiner):
                 candidate = candidate[['ANO_ELEICAO', 'NM_UE', 'DS_CARGO', 'NM_CANDIDATO', 'SG_PARTIDO', 'DS_GENERO', 'DS_GRAU_INSTRUCAO', 'DS_ESTADO_CIVIL', 'DS_COR_RACA', 'DS_OCUPACAO', 'DS_SIT_TOT_TURNO', "DT_NASCIMENTO", 'NR_CPF_CANDIDATO']]
                 candidates = pd.concat([candidates, candidate])
 
-        candidates.to_csv(f"{miner.output_path}candidates.csv", index=False)
+        candidates.to_csv(f"{self.output_path}candidates.csv", index=False)
         self.candidates = candidates
+
+    async def run_tasks(self):
+        tasks = []
+        for year in self.years:
+            tasks.append(asyncio.create_task(self.get_candidates_zip(year)))
+        
+        await asyncio.gather(*tasks)
 
     def mine(self):
         """
         Mine the API for candidates.
         """
-        tasks = []
-        for year in self.years:
-            tasks.append(self.get_candidates_zip(year))
-        asyncio.run(asyncio.wait(tasks))
+        self.logger.info("Started mining candidates.")
+        asyncio.run(self.run_tasks())
+
         for year in self.years:
             self.extract_zip(year)
         self.create_dataframe()

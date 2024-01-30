@@ -1,8 +1,8 @@
-from src.miners.base import BaseMiner
+import os
 import asyncio
 import aiohttp
 import pandas as pd
-
+from base import BaseMiner
 
 class BillsMiner(BaseMiner):
     def __init__(self, **kwargs):
@@ -16,6 +16,7 @@ class BillsMiner(BaseMiner):
         self.proposal_types = ["PL", "PEC", "PLN", "PLP", "PLV", "PLC"]
         self.output_path = "data/proposals/"
         self.years = list(range(2000, 2024))
+        os.makedirs(f"{self.output_path}/", exist_ok=True)
 
     async def get_proposals(self, year):
         download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoes/csv/proposicoes-{year}.csv"
@@ -29,25 +30,33 @@ class BillsMiner(BaseMiner):
     def create_dataframe(self):
         proposals = pd.DataFrame()
         for year in self.years:
-            proposal = pd.read_csv(f"{self.output_path}proposals-{year}.csv", sep=";")                   
+            try:
+                proposal = pd.read_csv(f"{self.output_path}proposals-{year}.csv", sep=";")                   
+            except:
+                self.logger.error(f"Could not find proposals for year {year}.")
+                continue
             proposal = proposal[['id', 'ultimoStatus_idSituacao', 'siglaTipo', 'ano', 'ementa', 'keywords']]
             proposal = proposal[proposal['siglaTipo'].isin(self.proposal_types)]
             proposal['keywords'] = proposal['keywords'].str.replace("\n", " ")
             proposal['keywords'] = proposal['keywords'].str.replace("\r", " ")
             proposal['ultimoStatus_idSituacao'] = proposal['ultimoStatus_idSituacao'].fillna(0.0).astype(int)
             proposals = pd.concat([proposals, proposal])
-
+        
         proposals.to_csv(f"{self.output_path}proposals.csv", index=False)
         self.proposals = proposals
+
+    async def run_tasks(self):
+        tasks = []
+        for year in self.years:
+            tasks.append(asyncio.create_task(self.get_proposals(year)))
+        
+        await asyncio.gather(*tasks)
 
     def mine(self):
         """
         Mine the API for proposals.
         """
-        tasks = []
-        for year in self.years:
-            tasks.append(self.get_proposals(year))
-        asyncio.run(asyncio.wait(tasks))
+        asyncio.run(self.run_tasks())
         self.create_dataframe()
         self.logger.info("Finished mining proposals.")
 
