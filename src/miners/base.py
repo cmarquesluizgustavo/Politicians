@@ -1,5 +1,5 @@
 import asyncio
-import aiohttp
+from aiohttp import ClientSession
 import logging
 import uuid
 from datetime import datetime, timedelta
@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import os
 
 class BaseMiner(ABC):
-    def __init__(self, name: str, log_level: int = logging.INFO, log_file: str = None, **kwargs):
+    def __init__(self, name: str, log_level: int = logging.INFO, log_file: str = 'logs/base.log', output_path: str = 'data/base',**kwargs):
         """
         Initialize the BaseMiner.
 
@@ -19,8 +19,9 @@ class BaseMiner(ABC):
         """
         self.name = name
         self.kwargs = kwargs
+        os.makedirs(f"{output_path}/", exist_ok=True)
         self.max_retries = kwargs.get('max_retries', 3)
-        self.concurrency = asyncio.Semaphore(kwargs.get('concurrency', 5))
+        self.concurrency = kwargs.get('concurrency', asyncio.Semaphore(10000))
         self.wait_until = datetime.now()
         self.logger = BaseLogger(name=self.name, log_level=log_level, log_file=log_file)
 
@@ -39,25 +40,28 @@ class BaseMiner(ABC):
             await asyncio.sleep((self.wait_until - datetime.now()).total_seconds())
             self.logger.warning(f"Resuming mining at {datetime.now().strftime('%H:%M:%S')}")
 
-    async def make_request(self, url: str, headers: dict = None, params: dict = None, session: aiohttp.ClientSession = None) -> dict:
+    async def make_request(self, url: str, session: ClientSession, headers: dict = {}, params: dict = {}) -> dict:
         """
         Make a request to the API.
 
         Args:
-            url (str): URL to make the request to.
-            headers (dict, optional): Headers to include in the request. Defaults to None.
-            params (dict, optional): Parameters to include in the request. Defaults to None.
+            url (str): URL of the API.
+            session (ClientSession): Session to use.
+            headers (dict, optional): Headers to include in the request. Defaults to {}.
+            params (dict, optional): Parameters to include in the request. Defaults to {}.
 
         Returns:
             dict: Response from the API.
         """
         request_id = uuid.uuid4()
         self.logger.info(f"Making request to {url} - Request ID: {request_id}")
-        async with self.concurrency:
-            for retry in range(self.max_retries):
-                await self.check_rate_limit(0)
-                self.logger.debug(
-                    f"Making request to {url} - Request ID: {request_id}. Params: {params} - Headers: {headers} - Retry: {retry}/{self.max_retries}")
+        response = None
+        for retry in range(self.max_retries):
+            await self.check_rate_limit(0)
+            self.logger.debug(
+                f"Making request to {url} - Request ID: {request_id}. Params: {params} - Headers: {headers} - Retry: {retry}/{self.max_retries}"
+            )
+            try:
                 async with session.get(url, headers=headers, params=params) as response:
                     if response.status in [200, 201]:
                         self.logger.debug(f"Request to {url} successful - Request ID: {request_id}")
@@ -65,11 +69,14 @@ class BaseMiner(ABC):
                     elif response.status == 429:
                         retry_after = int(response.headers.get('Retry-After', 0))
                         await self.check_rate_limit(retry_after)
+            except Exception as e:
+                self.logger.warning(f"Error in request to {url} - Request ID: {request_id}. Error: {e}")
 
-        self.logger.error(f"Error in response from {url}. Status code: {response.status} - Request ID: {request_id}")
+        self.logger.error(f"Max retries reached for {url} - Request ID: {request_id}")
+        return {}
 
-    async def fetch_all_pages(self, url: str, headers: dict = None, params: dict = None,
-                              session: aiohttp.ClientSession = None) -> list:
+    async def fetch_all_pages(self, url: str, headers: dict, params: dict,
+                              session: ClientSession) -> list:
         """
         Fetch all pages of a paginated API.
 
@@ -77,12 +84,12 @@ class BaseMiner(ABC):
             url (str): URL of the API.
             headers (dict, optional): Headers to include in the request. Defaults to None.
             params (dict, optional): Parameters to include in the request. Defaults to None.
-            session (aiohttp.ClientSession, optional): Session to use. Defaults to None.
+            session (ClientSession, optional): Session to use. Defaults to None.
 
         Returns:
             list: List of responses.
         """
-        response = await self.make_request(url=url, headers=headers, params=params, session=session)
+        response = await self.make_request(url=url, session=session, headers=headers, params=params)
         links = response.get('links', {})
         if not links or len(links) < 2:
             return [response]
@@ -94,13 +101,37 @@ class BaseMiner(ABC):
         for next_page_link in list(range(2, last_page_id + 1)):
             page_params = params.copy()
             page_params['pagina'] = next_page_link
-            tasks.append(self.make_request(url, headers=headers, params=page_params, session=session))
+            tasks.append(self.make_request(url, session=session, headers=headers, params=page_params))
         next_pages_data = await asyncio.gather(*tasks)
-        self.logger.info(f"Fetched {len(next_pages_data) + 1} pages of data for {url}.")
+        self.logger.info(f"Fetched {len(next_pages_data) + 1} pages of data for {url} and params {params}")
 
         data = response.get('dados', [])
         data.extend([page.get('dados', []) for page in next_pages_data])
 
+        return data
+    
+    async def fetch_endpoint_list(self, url: str, path_parameters: list[str], expected_data_key: str, headers: dict = {'accept': 'application/json'}) -> dict[str, dict]:
+        """
+        Fetch details of a list of urls asynchronously. Same endpoint, different IDs.
+
+        Args:
+            url (str): Target URL with endpoint.
+            path_parameters (list): List of path parameters.
+            expected_data_key (str): Expected data key in the response.
+        Returns:
+            dict: Dictionary containing the data. Keys are the path parameters. Values are the data.
+        """
+        data = {}
+        for path_parameter in path_parameters:
+            query = f"{url}/{path_parameter}"
+            async with self.concurrency:
+                async with ClientSession() as session:
+                    response = await self.make_request(query, session, headers)
+                    if expected_data_key in response:
+                        data[path_parameter] = response[expected_data_key]
+                        self.logger.info(f"Fetched data {path_parameter} from {url}")
+                    else:
+                        self.logger.error(f"Failed to fetch data {path_parameter} from {url}")
         return data
 
     @abstractmethod
@@ -112,7 +143,7 @@ class BaseMiner(ABC):
 
 
 class BaseLogger(logging.Logger):
-    def __init__(self, name, log_level: int = logging.INFO, log_file: str = None, **kwargs):
+    def __init__(self, name, log_level: int, log_file: str, **kwargs):
         """
         Initialize the BaseLogger.
 
@@ -134,13 +165,13 @@ class BaseLogger(logging.Logger):
             terminal (bool): Whether to log to the terminal.
         """
         self.log_level = log_level
-        self.log_file  = log_file
+        self.log_file  = log_file.replace(".", f"_{datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}.")
         os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
         self.setLevel(self.log_level)
         self.addHandler(logging.FileHandler(self.log_file))
         if terminal:
             self.addHandler(logging.StreamHandler())
-        self.info(f"Initializing logger {name} - Log level: {self.log_level} - Log file: {self.log_file}")
+        self.info(f"Initializing logger {name} - Log level: {logging.getLevelName(self.log_level)} - Log file: {self.log_file}")
 
 
 # Example usage:

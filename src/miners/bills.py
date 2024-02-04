@@ -12,13 +12,16 @@ class BillsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        super().__init__(name='Proposals', log_file='logs/proposals.log', **kwargs)
+        self.output_path = kwargs.get('output_path', "data/proposals/")
+        super().__init__(name='Proposals', log_file='logs/proposals.log', 
+                         output_path=self.output_path, **kwargs)
         self.proposal_types = ["PL", "PEC", "PLN", "PLP", "PLV", "PLC"]
-        self.output_path = "data/proposals/"
         self.years = list(range(2000, 2024))
-        os.makedirs(f"{self.output_path}/", exist_ok=True)
 
-    async def get_proposals(self, year):
+    async def get_proposals(self, year: int):
+        """"
+        Get proposals for a given year.
+        """
         download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoes/csv/proposicoes-{year}.csv"
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
@@ -28,6 +31,9 @@ class BillsMiner(BaseMiner):
             self.logger.info(f"Finished downloading proposals for year {year}.")
 
     def create_dataframe(self):
+        """"
+        Create a dataframe with all the proposals.
+        """
         proposals = pd.DataFrame()
         for year in self.years:
             try:

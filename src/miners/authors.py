@@ -12,12 +12,12 @@ class AuthorsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        super().__init__(name='Authors', log_file='logs/authors.log', **kwargs)
-        self.output_path = "data/authors/"
+        self.output_path = kwargs.get('output_path', "data/authors/")
+        super().__init__(name='Authors', log_file='logs/authors.log', 
+                         output_path=self.output_path, **kwargs)
         self.years = list(range(2000, 2025))
-        os.makedirs(f"{self.output_path}/", exist_ok=True)
 
-    async def get_authors(self, year, rerun=False):
+    async def get_authors(self, year, retry=0):
         download_link = "https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/csv/proposicoesAutores-{year}.csv"
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
@@ -26,11 +26,11 @@ class AuthorsMiner(BaseMiner):
                 f.write(await response.read())
 
         if os.path.getsize(f"{self.output_path}{year}.csv") == 0:
-            if rerun: raise Exception(f"File for year {year} was empty. Rerun failed.")
-            self.logger.info(f"File for year {year} was empty. Rerunning...")
-            await self.get_authors(year, rerun=True)
+            if retry > 2: raise Exception(f"File for year {year} was empty. Rerun failed.")
+            self.logger.info(f"File for year {year} was empty. Retrying for the {retry+1} time.")
+            await self.get_authors(year, retry=retry+1)
 
-        if not rerun: self.logger.info(f"Finished downloading authors for year {year}.")
+        if not retry: self.logger.info(f"Finished downloading authors for year {year}.")
 
     def create_dataframe(self):
         authors = pd.DataFrame()

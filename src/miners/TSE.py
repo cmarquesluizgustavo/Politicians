@@ -1,6 +1,7 @@
 import os
 import asyncio
 import aiohttp
+import zipfile
 import pandas as pd
 from base import BaseMiner
 
@@ -13,12 +14,12 @@ class TSEReportsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        super().__init__(name='TSEReports', log_file='logs/TSE_reports.log', **kwargs)
-        self.output_path = "data/candidates/"
-        self.years = list(range(2002, 2024, 4))
-        os.makedirs(f"{self.output_path}/", exist_ok=True)
+        self.output_path = kwargs.get('output_path', "data/tse/")
+        self.years = kwargs.get('years', list(range(2000, 2025)))
+        super().__init__(name='TSEReports', log_file='logs/TSE_reports.log', 
+                         output_path=self.output_path, **kwargs)
 
-    async def get_candidates_zip(self, year):
+    async def get_candidates_zip(self, year: int):
         download_link = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_{year}.zip"
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
@@ -27,14 +28,19 @@ class TSEReportsMiner(BaseMiner):
                 f.write(await response.read())
             self.logger.info(f"Finished downloading candidates for year {year}.")
 
-    def extract_zip(self, year):
-        import zipfile
+    def extract_zip(self, year: int):
+        """
+        Extract the zip file for the candidates.
+        """
         with zipfile.ZipFile(f"{self.output_path}candidates-{year}.zip", 'r') as zip_ref:
             zip_ref.extractall(f"{self.output_path}candidates-{year}/")
 
         os.remove(f"{self.output_path}candidates-{year}.zip")
 
     def create_dataframe(self):
+        """"
+        Create a dataframe with all the candidates.
+        """
         candidates = pd.DataFrame()
         for year in self.years:
             for file in os.listdir(f"{self.output_path}candidates-{year}/"):

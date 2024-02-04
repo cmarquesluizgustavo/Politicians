@@ -1,12 +1,12 @@
-import os
 import asyncio
 import logging
-import aiohttp
+from aiohttp import ClientSession
 import pandas as pd
 from base import BaseMiner
 
+
 class CongressPeople(BaseMiner):
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
         """
         CongressAPI constructor.
 
@@ -15,81 +15,52 @@ class CongressPeople(BaseMiner):
             sleep_spacing (int): Time in seconds to sleep between requests.
             max_retries (int): Maximum number of retries for a failed request.
         """
-        super().__init__(name='Authors', log_file='logs/congresspeople.log', terminal=True)
-        self.output_path = "data/congresspeople/"
+        self.output_path = kwargs.get('output_path', "data/congresspeople/")
+        concurrency = asyncio.Semaphore(5)
+        super().__init__(name='Authors', log_file='logs/congresspeople.log', 
+                         output_path=self.output_path, terminal=True, concurrency=concurrency)
         self.base_url = 'https://dadosabertos.camara.leg.br/api/v2/'
-        os.makedirs(self.output_path, exist_ok=True)
-
-        # Configure logger
         
-    async def fetch_congresspeople_basic_info(self) -> list:
+    async def get_congresspeople_basic_info(self) -> list[dict]:
         """
         Fetch congresspeople basic infos asynchronously.
-
-        Args:
-            session: Aiohttp ClientSession instance.
-
+        
         Returns:
             list: List of congresspeople IDs.
         """
         legislatures_ids = list(range(51, 58))
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.fetch_all_pages(f'{self.base_url}deputados', params={'idLegislatura': legislature_id}, session=session) for legislature_id in legislatures_ids]
-            congresspeople_basic_infos = await asyncio.gather(*tasks)
+        async with ClientSession() as session:
+            tasks = [self.fetch_all_pages(f'{self.base_url}deputados', headers={}, params={'idLegislatura': legislature_id}, session=session) for legislature_id in legislatures_ids]
+            congresspeople_basic_info = await asyncio.gather(*tasks)
 
-        congresspeople_basic_infos = [congressperson for congresspeople in congresspeople_basic_infos for congressperson in congresspeople]
-        return congresspeople_basic_infos
-
-    async def fetch_congressperson_details(self, session: aiohttp.ClientSession, congressperson_id: int) -> dict:
-        """
-        Fetch details of a congressperson asynchronously.
-
-        Args:
-            session: Aiohttp ClientSession instance.
-            congressperson_id (int): ID of the congressperson.
-
-        Returns:
-            dict: JSON response containing details of the congressperson.
-        """
-        headers = {'accept': 'application/json'}
-
-        try:
-            data = await self.make_request(f'{self.base_url}deputados/{congressperson_id}', headers=headers, session=session)
-            self.logger.info(f"Fetched data for congressperson {congressperson_id}...")
-        except Exception as e:
-            self.logger.error(f"Could not fetch data for congressperson {congressperson_id}. Error: {e}")
-            return None
-
-        return data['dados']
-
-    async def get_all_congresspeople_details(self) -> list:
-        """
-        Fetch details of all congresspeople asynchronously.
-
-        Returns:
-            list: List of JSON responses containing details of all congresspeople.
-        """
-        congresspeople_basic_info = await self.fetch_congresspeople_basic_info()
-        counter = 0
+        congresspeople_basic_info = [congressperson for congresspeople in congresspeople_basic_info for congressperson in congresspeople]
         for congressperson in congresspeople_basic_info:
             if type(congressperson) == list:
                 for c in congressperson:
                     if 'id' in c:
                         congresspeople_basic_info.append(c)
                 congresspeople_basic_info.remove(congressperson)
+        return congresspeople_basic_info
 
+    async def get_all_congresspeople_details(self, congresspeople_basic_info: list) -> pd.DataFrame:
+        """
+        Fetch details of all congresspeople asynchronously.
+
+        Args:
+            congresspeople_basic_info (list): List of congresspeople basic info.
+
+        Returns:
+            pd.DataFrame: Dataframe containing the details of all congresspeople.
+        """
         congresspeople_ids = [congressperson['id'] for congressperson in congresspeople_basic_info]
         congresspeople_ids = list(set(congresspeople_ids))
-        async with aiohttp.ClientSession() as session:
-            tasks = [self.fetch_congressperson_details(session, congressperson_id) for congressperson_id in congresspeople_ids]
-            logging.info(f"Fetching details for {len(congresspeople_ids)} congresspeople...")
-            congresspeople_details = await asyncio.gather(*tasks)
+        congresspeople_details = await self.fetch_endpoint_list(f'{self.base_url}deputados', congresspeople_ids, 'dados')
         
         # Add total status to each congressperson
         logging.info(f"Adding total status to each congressperson. Total: {len(congresspeople_details)}")
         counter = 0
         result_congresspeople_details = pd.DataFrame()
-        for congressperson_detail in congresspeople_details:
+        for congressperson_detail in congresspeople_details.values():
             try:
                 this_congressperson_term = pd.DataFrame.from_dict(congressperson_detail, orient='index').T
                 this_congressperson_term['siglaUf']       = this_congressperson_term['ultimoStatus'].apply(lambda x: x['siglaUf'])
@@ -123,7 +94,7 @@ class CongressPeople(BaseMiner):
             counter += 1
         return result_congresspeople_details
     
-    def create_dataframe(self, congresspeople: list) -> pd.DataFrame:
+    def create_dataframe(self, congresspeople: pd.DataFrame) -> pd.DataFrame:
         """
         Create a dataframe from a list of congresspeople.
 
@@ -144,13 +115,19 @@ class CongressPeople(BaseMiner):
     def mine(self) -> pd.DataFrame:
         """
         Mine congresspeople data.
+
+        Returns:
+            pd.DataFrame: Dataframe containing the congresspeople.s
         """
         self.logger.info("Mining congresspeople data...")
-        congresspeople = asyncio.run(self.get_all_congresspeople_details())
+        congresspeople_basic_info = asyncio.run(self.get_congresspeople_basic_info())
+        self.logger.info("Mine congresspeople basic info...")
+
+        congresspeople = asyncio.run(self.get_all_congresspeople_details(congresspeople_basic_info))
         congresspeople = self.create_dataframe(congresspeople)
         self.logger.info(f"Finished mining congresspeople data. {len(congresspeople)} congresspeople were mined.")
         return congresspeople
 
 if __name__ == '__main__':
     api = CongressPeople()
-    congresspeople = api.mine()
+    api.mine()
