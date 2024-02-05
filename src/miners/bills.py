@@ -55,7 +55,7 @@ class BillsMiner(BaseMiner):
                 proposal = pd.read_csv(
                     f"{self.output_path}proposals-{year}.csv", sep=";", low_memory=False
                 )
-            except Exception as e:
+            except Exception:
                 self.logger.error("Could not find proposals for year %s.", year)
                 continue
             proposal = proposal[
