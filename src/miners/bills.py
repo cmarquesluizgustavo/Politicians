@@ -36,8 +36,10 @@ class BillsMiner(BaseMiner):
         """
         Get proposals for a given year.
         """
-        download_link = f"https://dadosabertos.camara.leg.br/\
-            arquivos/proposicoes/csv/proposicoes-{year}.csv"
+        download_link = (
+            "https://dadosabertos.camara.leg.br/"
+            + "arquivos/proposicoes/csv/proposicoes-{year}.csv"
+        )
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)

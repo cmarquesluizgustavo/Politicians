@@ -23,7 +23,7 @@ class TSEReportsMiner(BaseMiner):
             **kwargs: Additional arguments.
         """
         self.output_path = kwargs.get("output_path", "data/tse/")
-        self.years = kwargs.get("years", list(range(2000, 2024, 4)))
+        self.years = kwargs.get("years", list(range(1998, 2024, 4)))
         super().__init__(
             name="TSEReports",
             log_file="logs/tse_reports.log",
@@ -36,8 +36,10 @@ class TSEReportsMiner(BaseMiner):
         Download the zip file for the candidates.
         """
 
-        download_link = f"https://cdn.tse.jus.br/estatistica/sead/odsele/\
-            consulta_cand/consulta_cand_{year}.zip"
+        download_link = (
+            "https://cdn.tse.jus.br/estatistica/sead/odsele/"
+            + "consulta_cand/consulta_cand_{year}.zip"
+        )
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)

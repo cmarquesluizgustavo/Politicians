@@ -34,8 +34,10 @@ class AuthorsMiner(BaseMiner):
         """
         Get authors for a given year.
         """
-        download_link = f"https://dadosabertos.camara.leg.br/arquivos/\
-                          proposicoesAutores/csv/proposicoesAutores-{year}.csv"
+        download_link = (
+            "https://dadosabertos.camara.leg.br/arquivos/"
+            + "proposicoesAutores/csv/proposicoesAutores-{year}.csv"
+        )
         url = download_link.format(year=year)
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)

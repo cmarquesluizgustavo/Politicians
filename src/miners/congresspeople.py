@@ -17,11 +17,6 @@ class CongressPeople(BaseMiner):
     def __init__(self, **kwargs) -> None:
         """
         CongressAPI constructor.
-
-        Args:
-            concurrency_limit (int): Maximum number of concurrent requests.
-            sleep_spacing (int): Time in seconds to sleep between requests.
-            max_retries (int): Maximum number of retries for a failed request.
         """
         self.output_path = kwargs.get("output_path", "data/congresspeople/")
         concurrency = asyncio.Semaphore(5)
@@ -60,7 +55,7 @@ class CongressPeople(BaseMiner):
             for congressperson in congresspeople
         ]
         for congressperson in congresspeople_basic_info:
-            if type(congressperson) == list:
+            if isinstance(congressperson, list):
                 for c in congressperson:
                     if "id" in c:
                         congresspeople_basic_info.append(c)
@@ -136,7 +131,7 @@ class CongressPeople(BaseMiner):
                 )
             except:
                 self.logger.error(
-                    "Could not add inital status to congressperson %s" % counter
+                    "Could not add inital status to congressperson %s", counter
                 )
                 raise
             try:
