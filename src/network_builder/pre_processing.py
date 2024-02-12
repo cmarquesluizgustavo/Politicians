@@ -1,8 +1,30 @@
-import logging
 import datetime
+import logging
+import pandas as pd
 
 
-def getUfRegion(uf):
+def pre_processing(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function is used to treat the data before it is used to create the network.
+
+    Args:
+        data (pd.DataFrame): The data that will be treated.
+
+    Returns:
+        pd.DataFrame: The treated data.
+    """
+    data["occupation"] = data["occupation"].apply(get_occupation)
+    data["education_level"] = data["education"].apply(get_eduction_level)
+    data["marital_status"] = data["marital_status"].apply(get_marital_status)
+    data["age"] = data.apply(
+        lambda x: get_age(x["dataNascimento"], x["election_year"]), axis=1
+    )
+    data["region"] = data["siglaUf"].apply(get_uf_region)
+    data["gender"] = data["sexo"]
+    return data
+
+
+def get_uf_region(uf):
     regions_dict = {
         "AM": "Norte",
         "RR": "Norte",
@@ -35,7 +57,9 @@ def getUfRegion(uf):
     return regions_dict[uf]
 
 
-def getoccupation(occupation):
+def get_occupation(occupation):
+    if pd.isna(occupation):
+        return "other"
     occupation = occupation.upper()
     translation_table = {
         "DEPUTADO": "politician",
@@ -49,7 +73,6 @@ def getoccupation(occupation):
         "SERVIDOR PUBLICO FEDERAL": "public servant",
         "SERVIDOR PÚBLICO FEDERAL": "public servant",
         "SERVIDOR PUBLICO ESTADUAL": "public servant",
-        "SERVIDOR PÚBLICO ESTADUAL": "public servant",
         "SERVIDOR PÚBLICO ESTADUAL": "public servant",
         "SERVIDOR PUBLICO MUNICIPAL": "public servant",
         "SERVIDOR PÚBLICO MUNICIPAL": "public servant",
@@ -173,7 +196,9 @@ def getoccupation(occupation):
         return "other"
 
 
-def getEductionLevel(education):
+def get_eduction_level(education):
+    if pd.isna(education):
+        return "other"
     education = education.upper()
     translation_table = {
         "DOUTORADO": "graduate",
@@ -184,21 +209,25 @@ def getEductionLevel(education):
         "SUPERIOR COMPLETO": "undergraduate",
         "SUPERIOR": "undergraduate",
         "SUPERIOR INCOMPLETO": "high school",
+        "2º GRAU COMPLETO": "high school",
         "ENSINO MÉDIO": "high school",
         "ENSINO MÉDIO COMPLETO": "high school",
         "MÉDIO COMPLETO": "high school",
         "SECUNDÁRIO": "high school",
         "ENSINO FUNDAMENTAL": "elementary school",
         "ENSINO FUNDAMENTAL COMPLETO": "elementary school",
+        "1º GRAU COMPLETO": "elementary school",
         "FUNDAMENTAL COMPLETO": "elementary school",
         "PRIMÁRIO": "elementary school",
         "SECUNDÁRIO INCOMPLETO": "elementary school",
         "ENSINO TÉCNICO": "high school",
         "GINASIAL": "high school",
+        "2º GRAU INCOMPLETO": "elementary school",
         "ENSINO MÉDIO INCOMPLETO": "elementary school",
         "MÉDIO INCOMPLETO": "elementary school",
         "PRIMÁRIO INCOMPLETO": "no education",
         "ENSINO FUNDAMENTAL INCOMPLETO": "no education",
+        "1º GRAU INCOMPLETO": "no education",
         "FUNDAMENTAL INCOMPLETO": "no education",
         "LÊ E ESCREVE": "no education",
         "NÃO INFORMADO": "other",
@@ -211,7 +240,9 @@ def getEductionLevel(education):
         return education
 
 
-def getMaritalStatus(marital_status):
+def get_marital_status(marital_status):
+    if pd.isna(marital_status):
+        return "other"
     marital_status = marital_status.upper()
     translation_table = {
         "CASADO(A)": "married",
@@ -230,8 +261,14 @@ def getMaritalStatus(marital_status):
         return marital_status
 
 
-def getAge(birthdate):
+def get_age(birthdate, election_year):
     birthdate = datetime.datetime.strptime(birthdate, "%Y-%m-%d")
-    age = datetime.datetime.now() - birthdate
-    age = int(age.days / 365)
+    election_year = int(election_year)
+    age = election_year - birthdate.year
     return age
+
+
+if __name__ == "__main__":
+    congresspeople = pd.read_csv("data/enriched_congresspeople.csv")
+    congresspeople_processed = pre_processing(congresspeople)
+    congresspeople_processed.to_csv("data/data_preprocessed.csv", index=False)
