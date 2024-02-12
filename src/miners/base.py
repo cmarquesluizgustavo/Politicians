@@ -20,8 +20,8 @@ class BaseMiner(ABC):
         self,
         name: str,
         log_level: int = logging.INFO,
-        log_file: str = "logs/base.log",
-        output_path: str = "data/base",
+        log_file: str = "logs/miners/base.log",
+        output_path: str = "data/miners/base",
         **kwargs,
     ):
         """
@@ -238,10 +238,11 @@ class BaseLogger(logging.Logger):
         if terminal:
             self.addHandler(logging.StreamHandler())
         self.info(
-            "Initializing logger %s - Log level: %s - Log file: %s",
+            "Initializing logger %s - Log level: %s - Log file: %s @ %s",
             name,
             logging.getLevelName(self.log_level),
             self.log_file,
+            datetime.now().strftime("%Y-%m-%d@%H:%M:%S"),
         )
 
 

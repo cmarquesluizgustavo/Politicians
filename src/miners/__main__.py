@@ -23,9 +23,9 @@ def process_congresspeople():
     This process the data from Congress and TSE to enrich the congresspeople data
     """
     # Read in the data
-    candidates = pd.read_csv("data/tse/candidates.csv", encoding="utf-8")
+    candidates = pd.read_csv("data/miners/tse/candidates.csv", encoding="utf-8")
     congresspeople_df = pd.read_csv(
-        "data/congresspeople/congresspeople.csv", encoding="utf-8"
+        "data/miners/congresspeople/congresspeople.csv", encoding="utf-8"
     )
 
     # Filter out the candidates that are not congresspeople
@@ -98,7 +98,7 @@ def process_congresspeople():
     )
 
     congresspeople_df.to_csv(
-        "data/enriched_congresspeople.csv", index=False, encoding="utf-8"
+        "data/miners/enriched_congresspeople.csv", index=False, encoding="utf-8"
     )
 
 

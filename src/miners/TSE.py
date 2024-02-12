@@ -22,11 +22,11 @@ class TSEReportsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        self.output_path = kwargs.get("output_path", "data/tse/")
+        self.output_path = kwargs.get("output_path", "data/miners/tse/")
         self.years = kwargs.get("years", list(range(1998, 2024, 4)))
         super().__init__(
             name="TSEReports",
-            log_file="logs/tse_reports.log",
+            log_file="logs/miners/tse_reports.log",
             output_path=self.output_path,
             **kwargs,
         )

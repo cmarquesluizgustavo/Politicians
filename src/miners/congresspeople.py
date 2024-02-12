@@ -18,11 +18,11 @@ class CongressPeople(BaseMiner):
         """
         CongressAPI constructor.
         """
-        self.output_path = kwargs.get("output_path", "data/congresspeople/")
+        self.output_path = kwargs.get("output_path", "data/miners/congresspeople/")
         concurrency = asyncio.Semaphore(5)
         super().__init__(
             name="Authors",
-            log_file="logs/congresspeople.log",
+            log_file="logs/miners/congresspeople.log",
             output_path=self.output_path,
             terminal=True,
             concurrency=concurrency,

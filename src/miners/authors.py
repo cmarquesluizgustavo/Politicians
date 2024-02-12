@@ -21,10 +21,10 @@ class AuthorsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        self.output_path = kwargs.get("output_path", "data/authors/")
+        self.output_path = kwargs.get("output_path", "data/miners/authors/")
         super().__init__(
             name="Authors",
-            log_file="logs/authors.log",
+            log_file="logs/miners/authors.log",
             output_path=self.output_path,
             **kwargs,
         )

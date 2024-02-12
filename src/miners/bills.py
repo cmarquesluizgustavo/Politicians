@@ -22,10 +22,10 @@ class BillsMiner(BaseMiner):
         Args:
             **kwargs: Additional arguments.
         """
-        self.output_path = kwargs.get("output_path", "data/proposals/")
+        self.output_path = kwargs.get("output_path", "data/miners/proposals/")
         super().__init__(
             name="Proposals",
-            log_file="logs/proposals.log",
+            log_file="logs/miners/proposals.log",
             output_path=self.output_path,
             **kwargs,
         )
