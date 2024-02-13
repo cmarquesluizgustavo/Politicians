@@ -238,11 +238,10 @@ class BaseLogger(logging.Logger):
         if terminal:
             self.addHandler(logging.StreamHandler())
         self.info(
-            "Initializing logger %s - Log level: %s - Log file: %s @ %s",
+            "Initializing logger %s - Log level: %s - Log file: %s",
             name,
             logging.getLevelName(self.log_level),
             self.log_file,
-            datetime.now().strftime("%Y-%m-%d@%H:%M:%S"),
         )
 
 
