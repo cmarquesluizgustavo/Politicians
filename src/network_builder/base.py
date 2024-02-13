@@ -1,6 +1,7 @@
 import os
 import pickle
 import logging
+import threading
 from datetime import datetime
 import pandas as pd
 import networkx as nx
@@ -11,32 +12,57 @@ class NetworkFactory:
     Factory class to create the network
     """
 
-    def create_network(
+    def __init__(
         self,
         congresspeople: pd.DataFrame,
-        authors_dict: dict[int, list[str]],
+        authors_dict: dict[int, dict[int, list[int]]],
         features: list[str],
+        path_to_save: str,
     ):
         """
-        Create a network for each period
         Args:
             congresspeople (pd.DataFrame): DataFrame with congresspeople data
-            authors_dict (dict[int, list[str]]): Dictionary with proposal
-                                        as key and list of authors as value
+            authors_dict (dict[int, list[str]]): Dictionary with keys as years and
+                values as a dict with proposal as key and list of authors as value
             features (list[str]): List of features to add to the graph
         """
-        for year in authors_dict.keys():
+        self.congresspeople = congresspeople
+        self.authors_dict = authors_dict
+        self.features = features
+        self.path_to_save = path_to_save
+        os.makedirs(self.path_to_save, exist_ok=True)
+
+    def _create_network(self, congress, proposals, period, path):
+        NetworkBuilder(
+            congresspeople=congress,
+            proposals=proposals,
+            features=self.features,
+            period=period,
+            path=path,
+        )
+
+    def create_networks(self):
+        """
+        Create a network for each period
+        """
+        threads = []
+
+        for year in self.authors_dict.keys():
             id_legislatura = (year - 1999) // 4 + 51
-            congress = congresspeople[congresspeople["idLegislatura"] == id_legislatura]
+            congress = self.congresspeople[
+                self.congresspeople["idLegislatura"] == id_legislatura
+            ]
+            proposals = self.authors_dict[year]
+            path = f"{self.path_to_save}/{year}.pkl"
 
-            NetworkBuilder(
-                congress,
-                {year: authors_dict[year]},
-                features,
-                str(year),
+            thread = threading.Thread(
+                target=self._create_network,
+                args=(congress, proposals, str(year), path)
             )
+            threads.append(thread)
+            thread.start()
 
-        for id_legislatura in congresspeople["idLegislatura"].unique():
+        for id_legislatura in self.congresspeople["idLegislatura"].unique():
             election_year = {
                 57: 2022,
                 56: 2018,
@@ -46,14 +72,26 @@ class NetworkFactory:
                 52: 2002,
                 51: 1998,
             }
-            congress = congresspeople[congresspeople["idLegislatura"] == id_legislatura]
-
+            congress = self.congresspeople[
+                self.congresspeople["idLegislatura"] == id_legislatura
+            ]
             years = list(range(election_year[55] + 1, election_year[55] + 5))
             authors_dict_term = {}
             for year in years:
-                authors_dict_term.update({year: authors_dict[year]})
+                authors_dict_term = {**authors_dict_term, **self.authors_dict[year]}
 
-            NetworkBuilder(congress, authors_dict_term, features, str(id_legislatura))
+            path = f"{self.path_to_save}/{id_legislatura}.pkl"
+
+            thread = threading.Thread(
+                target=self._create_network,
+                args=(congress, authors_dict_term, str(id_legislatura), path)
+            )
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
 
 
 class NetworkBuilder:
@@ -67,28 +105,30 @@ class NetworkBuilder:
     def __init__(
         self,
         congresspeople: pd.DataFrame,
-        authors_dict: dict[int, list[str]],
+        proposals: dict[int, list[int]],
         features: list[str],
         period: str,
+        path: str,
     ):
         """
         Args:
             congresspeople (pd.DataFrame): DataFrame with congresspeople data
-            authors_dict (dict[int, list[str]]): Dictionary with proposal
-                                                 as key and list of authors as value
+            authors_dict dict[int, list[int]]: Dictionary with proposal
+                                               as key and list of authors as value
             features (list[str]): List of features to add to the graph
             period (str): Period of the congress
         """
         self.g = nx.Graph()
         self.congresspeople = congresspeople
-        self.authors_dict = authors_dict
+        self.proposals = proposals
         self.features = features
         self.period = period
+        self.path = path
 
         self.logger = NetworkLogger(
             "NetworkBuilder",
             logging.INFO,
-            f"logs/networks/network_builder_{period}.log",
+            f"logs/networks/network_builder_{self.period}.log",
         )
 
         # self.add_nodes(congresspeople)
@@ -97,14 +137,18 @@ class NetworkBuilder:
         #     relations = self.createRelation(congresspeople, feature)
         #     self.g.add_edges_from(relations, key=feature)
         self.add_nodes_attributes()
+        self.logger.info("Nodes added")
         self.add_edges_proposals()
-        self.save_graph(f"data/networks/{period}_network.gpickle")
+        self.logger.info("Edges added")
+        self.save_graph()
+        self.logger.info("Graph saved")
 
-    def save_graph(self, path: str):
+    def save_graph(self):
         """
         Save the graph in a pickle file
         """
-        with open(path, "wb") as f:
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with open(self.path, "wb") as f:
             pickle.dump(self.g, f)
 
     def create_relation(self, target_column: str):
@@ -143,9 +187,9 @@ class NetworkBuilder:
         """
         Add edges to the graph
         """
-        for proposal in self.authors_dict:
-            authors = self.authors_dict[proposal]
-            coauthors_len = len(self.authors_dict[proposal])
+        for proposal in self.proposals:
+            authors = self.proposals[proposal]
+            coauthors_len = len(self.proposals[proposal])
             for i in range(coauthors_len):
                 for j in range(i + 1, coauthors_len):
                     if not self.g.has_edge(authors[i], authors[j]):
@@ -181,9 +225,8 @@ class NetworkLogger(logging.Logger):
         if terminal:
             self.addHandler(logging.StreamHandler())
         self.info(
-            "Initializing logger %s - Log level: %s - Log file: %s @ %s",
+            "Initializing logger %s - Log level: %s - Log file: %s",
             name,
             logging.getLevelName(self.log_level),
             self.log_file,
-            datetime.now().strftime("%Y-%m-%d@%H:%M:%S"),
         )
