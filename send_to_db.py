@@ -1,13 +1,14 @@
 import pandas as pd
+import dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.models import CongressPerson, Term, Bill, Authorship
 from src.network_builder.pre_processing import pre_processing
 
 
-CONGRESSPEOPLE_PATH = "data/enriched_congresspeople.csv"
-PROPOSALS_PATH = "data/proposals/proposals.csv"
-AUTHORS_PATH = "data/authors/authors.csv"
+CONGRESSPEOPLE_PATH = "data/miners/enriched_congresspeople.csv"
+PROPOSALS_PATH = "data/miners/proposals/proposals.csv"
+AUTHORS_PATH = "data/miners/authors/authors.csv"
 
 congresspeople_df = pd.read_csv(CONGRESSPEOPLE_PATH)
 proposlas_df = pd.read_csv(PROPOSALS_PATH)
@@ -19,9 +20,9 @@ authors_df = authors_df[authors_df["idProposicao"].isin(proposlas_df["id"])]
 authors_df = authors_df[authors_df["id"].isin(congresspeople_df["id"])]
 
 
-DATABASE_URL = (
-    "postgresql://aristotle:notbraveenoughforpolitics@localhost:5432/aboutpolitics"
-)
+DATABASE_URL = dotenv.get_key(dotenv.find_dotenv(), "DATABASE_URL")
+if DATABASE_URL is None:
+    raise ValueError("DATABASE_URL not found in .env file.")
 
 # Create a connection to the database
 engine = create_engine(DATABASE_URL)
