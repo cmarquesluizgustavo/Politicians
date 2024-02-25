@@ -18,6 +18,7 @@ class SimilarityStatistics:
 
         self.logger = NetworkAnalyzerLogger(
             name=g.name,
+            client_class="SimilarityStatistics",
             log_level=20,
             log_file="logs/network_analyzer/similarity_statistics.log",
         )
@@ -143,13 +144,19 @@ class SimilarityAndGainsStatistics(SimilarityStatistics):
 
     def __init__(self, g: nx.Graph, target_features: list, similarity_algorithm: str):
         super().__init__(g, target_features, similarity_algorithm)
+
+        self.logger.info("Calculating gains by feature")
         gains_by_feature = {}
         for feature in self.target_features:
             gains_by_feature[feature] = self.get_gains_by_feature(feature)
+        self.gains_by_feature = pd.concat(gains_by_feature)
 
+        self.logger.info("Calculating gains by node")
         self.gains_by_node = pd.concat(
             [self.get_gains_by_node(node) for node in self.g.nodes()]
         )
+
+        self.logger.info("Gains calculated")
 
     def get_gains_by_feature(self, feature: str) -> pd.DataFrame:
         """'

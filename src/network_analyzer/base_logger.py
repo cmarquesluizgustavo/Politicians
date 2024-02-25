@@ -9,16 +9,18 @@ class NetworkAnalyzerLogger(logging.Logger):
     Deals with logging configurations.
     """
 
-    def __init__(self, name, log_level: int, log_file: str, **kwargs):
+    def __init__(self, name, client_class, log_level: int, log_file: str, **kwargs):
         """
         Initialize the BaseLogger.
         """
         if name == "":
             raise ValueError("Name cannot be empty.")
         super().__init__(kwargs.get("logger", "NetworkAnalyzerLogger"))
-        self.handle_logging(name, log_level, log_file, kwargs.get("terminal", False))
+        self.handle_logging(
+            name, client_class, log_level, log_file, kwargs.get("terminal", False)
+        )
 
-    def handle_logging(self, name, log_level, log_file, terminal) -> None:
+    def handle_logging(self, name, client_class, log_level, log_file, terminal) -> None:
         """
         Set up logging configurations.
         """
@@ -32,7 +34,8 @@ class NetworkAnalyzerLogger(logging.Logger):
         if terminal:
             self.addHandler(logging.StreamHandler())
         self.info(
-            "Initializing logger %s - Log level: %s - Log file: %s",
+            "Initializing %s logger for network %s\nLog level: %s - Log file: %s\n",
+            client_class,
             name,
             logging.getLevelName(self.log_level),
             self.log_file,
