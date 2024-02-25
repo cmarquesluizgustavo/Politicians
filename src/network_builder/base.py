@@ -128,7 +128,7 @@ class NetworkBuilder:
         self.logger = NetworkLogger(
             "NetworkBuilder",
             logging.INFO,
-            f"logs/networks_builder/network_builder_{self.period}.log",
+            f"logs/network_builder/network_builder_{self.period}.log",
         )
 
         # self.add_nodes(congresspeople)
