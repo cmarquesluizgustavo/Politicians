@@ -118,6 +118,7 @@ class NetworkBuilder:
             period (str): Period of the congress
         """
         self.g = nx.Graph()
+        self.g.name = period
         self.congresspeople = congresspeople
         self.proposals = proposals
         self.features = features
