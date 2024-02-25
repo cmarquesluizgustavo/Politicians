@@ -1,8 +1,8 @@
 import pickle
 import pandas as pd
 import networkx as nx
-from .basic_statistics import BasicStatistics
-from .similarity_statistics import SimilarityStatistics
+from basic_statistics import BasicStatistics
+from similarity_statistics import SimilarityStatistics
 
 
 class GetResults:
@@ -58,7 +58,8 @@ class GetResults:
 
 
 if __name__ == "__main__":
-    g_ = pickle.load(open("data/networks/2023.pkl", "rb"))
+    g_ = pickle.load(open("data/networks_builder/2023.pkl", "rb"))
+    g_.name = "2023"
     gr = GetResults(
         g_,
         target_features=[

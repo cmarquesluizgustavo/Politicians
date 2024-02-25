@@ -52,5 +52,7 @@ features = [
     "age",
 ]
 
-factory = NetworkFactory(congresspeople, authors_dict, features, 'data/networks/')
+factory = NetworkFactory(
+    congresspeople, authors_dict, features, "data/network_builder/"
+)
 factory.create_networks()

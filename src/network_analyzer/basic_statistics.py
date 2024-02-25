@@ -4,6 +4,7 @@ used to get the most vanilla statistics of a network.
 """
 
 import networkx as nx
+from base_logger import NetworkAnalyzerLogger
 
 
 class BasicStatistics:
@@ -19,24 +20,35 @@ class BasicStatistics:
 
     def __init__(self, g: nx.Graph) -> None:
         self.g = g
+        self.logger = NetworkAnalyzerLogger(
+            name=g.name,
+            log_level=20,
+            log_file="logs/network_analyzer/basic_statistics.log",
+        )
+
         self.number_of_nodes = g.number_of_nodes()
         self.number_of_edges = g.number_of_edges()
+
         self.connected_components = nx.number_connected_components(g)
         self.density = nx.density(g)
 
+        self.logger.info("Getting degree distribution")
         self.degree_distribution = dict(g.degree())
 
+        self.logger.info("Getting connected components")
         self.connected_components = nx.number_connected_components(g)
         self.largest_cc = self.g.subgraph(max(nx.connected_components(self.g), key=len))
         self.largest_cc_rel_size = (
             self.largest_cc.number_of_nodes() / self.number_of_nodes
         )
 
+        self.logger.info("Getting clustering coefficients")
         self.global_clustering = nx.transitivity(self.g)
         self.avg_clustering = nx.average_clustering(self.g)
 
         self.diameter = self.get_diameter()
 
+        self.logger.info("Getting centrality distributions")
         self.centrality_distributions = self.get_centrality_distributions()
 
     def get_centrality_distributions(self) -> dict:

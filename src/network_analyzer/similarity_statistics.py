@@ -1,6 +1,7 @@
 from typing import Mapping
 import pandas as pd
 import networkx as nx
+from base_logger import NetworkAnalyzerLogger
 
 
 class SimilarityStatistics:
@@ -15,6 +16,15 @@ class SimilarityStatistics:
         self.target_features = target_features
         self.similarity_algorithm = similarity_algorithm
 
+        self.logger = NetworkAnalyzerLogger(
+            name=g.name,
+            log_level=20,
+            log_file="logs/network_analyzer/similarity_statistics.log",
+        )
+
+        self.logger.info(
+            "Calculating similarity statistics. Algorithm: %s", similarity_algorithm
+        )
         self.similarity = self.get_all_similarities()
 
     def get_all_similarities(self) -> pd.DataFrame:
@@ -33,6 +43,7 @@ class SimilarityStatistics:
         similarity["Base", "gain"] = 0
 
         for feature in self.target_features:
+            self.logger.info("Calculating similarity for feature %s", feature)
             feature_df = self.get_similarity_4_feature(feature)
             feature_df[feature, "gain"] = (
                 feature_df[feature, "value"] - similarity[("Base", "value")]

@@ -56,8 +56,7 @@ class NetworkFactory:
             path = f"{self.path_to_save}/{year}.pkl"
 
             thread = threading.Thread(
-                target=self._create_network,
-                args=(congress, proposals, str(year), path)
+                target=self._create_network, args=(congress, proposals, str(year), path)
             )
             threads.append(thread)
             thread.start()
@@ -84,7 +83,7 @@ class NetworkFactory:
 
             thread = threading.Thread(
                 target=self._create_network,
-                args=(congress, authors_dict_term, str(id_legislatura), path)
+                args=(congress, authors_dict_term, str(id_legislatura), path),
             )
             threads.append(thread)
             thread.start()
@@ -128,7 +127,7 @@ class NetworkBuilder:
         self.logger = NetworkLogger(
             "NetworkBuilder",
             logging.INFO,
-            f"logs/networks/network_builder_{self.period}.log",
+            f"logs/networks_builder/network_builder_{self.period}.log",
         )
 
         # self.add_nodes(congresspeople)
