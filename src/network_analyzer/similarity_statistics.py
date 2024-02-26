@@ -146,10 +146,9 @@ class SimilarityAndGainsStatistics(SimilarityStatistics):
         super().__init__(g, target_features, similarity_algorithm)
 
         self.logger.info("Calculating gains by feature")
-        gains_by_feature = {}
+        self.gains_by_feature = {}
         for feature in self.target_features:
-            gains_by_feature[feature] = self.get_gains_by_feature(feature)
-        self.gains_by_feature = pd.concat(gains_by_feature)
+            self.gains_by_feature[feature] = self.get_gains_by_feature(feature)
 
         self.logger.info("Calculating gains by node")
         self.gains_by_node = pd.concat(

@@ -125,5 +125,4 @@ class BasicStatistics:
             [degree_df, pagerank_df, betweenness_df, closeness_df], join="outer", axis=1
         ).fillna(0)
 
-        node_df.set_index("node_id", inplace=True)
         return node_df
