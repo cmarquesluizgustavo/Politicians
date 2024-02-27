@@ -66,6 +66,10 @@ def consolidate_files(path: str):
     networks_df = networks_df.rename(columns={"Unnamed: 0": "network"}).set_index(
         "network"
     )
+    networks_df["type"] = [
+        "year" if len(str(network)) == 4 else "term" for network in networks_df.index
+    ]
+
     networks_df.to_csv(f"{path}/networks/networks.csv")
 
     for feature in features:
