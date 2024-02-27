@@ -35,6 +35,9 @@ class BasicStatistics:
 
         self.logger.info("Getting degree distribution")
         self.degree_distribution = dict(g.degree())
+        self.average_degree = (
+            sum(self.degree_distribution.values()) / self.number_of_nodes
+        )
 
         self.logger.info("Getting connected components")
         self.connected_components = nx.number_connected_components(g)
@@ -89,8 +92,11 @@ class BasicStatistics:
         """
         return pd.DataFrame(
             {
+                "period": [self.g.name],
+                "type": ["year" if len(str(self.g.name)) == 4 else "term"],
                 "number_of_nodes": [self.number_of_nodes],
                 "number_of_edges": [self.number_of_edges],
+                "average_degree": [self.average_degree],
                 "density": [self.density],
                 "connected_components": [self.connected_components],
                 "largest_cc_rel_size": [self.largest_cc_rel_size],
@@ -124,5 +130,6 @@ class BasicStatistics:
         node_df = pd.concat(
             [degree_df, pagerank_df, betweenness_df, closeness_df], join="outer", axis=1
         ).fillna(0)
+        node_df["node_id"] = node_df.index
 
         return node_df

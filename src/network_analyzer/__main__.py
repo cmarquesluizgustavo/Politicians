@@ -28,10 +28,9 @@ def get_statistics_all_networks(
         target_features,
         similarity_algorithm,
     )
-    node_df = pd.concat(
+    pd.concat(
         [sgs.gains_by_node, bs.nodes_to_dataframe()], join="outer", axis=1
-    ).fillna(0)
-    node_df.to_csv(f"{save_path}/nodes/{g.name}_nodes.csv")
+    ).fillna(0).to_csv(f"{save_path}/nodes/{g.name}_nodes.csv")
 
     bs.network_to_dataframe().to_csv(f"{save_path}/networks/{g.name}_network.csv")
 
@@ -49,6 +48,7 @@ def consolidate_files(path: str):
 
     networks_files = os.listdir(f"{path}/networks")
     features_files = os.listdir(f"{path}/features")
+    node_files = os.listdir(f"{path}/nodes")
 
     features = [
         features_file.split("_")[1].split(".csv")[0] for features_file in features_files
@@ -63,24 +63,21 @@ def consolidate_files(path: str):
             for network_file in networks_files
         ],
     )
-    networks_df = networks_df.rename(columns={"Unnamed: 0": "network"}).set_index(
-        "network"
-    )
-    networks_df["type"] = [
-        "year" if len(str(network)) == 4 else "term" for network in networks_df.index
-    ]
-
     networks_df.to_csv(f"{path}/networks/networks.csv")
 
     for feature in features:
-        feature_periods = pd.DataFrame()
-        for period in periods:
-            feature_period = pd.read_csv(f"{path}/features/{period}_{feature}.csv")
-            feature_period = feature_period.rename(columns={"Unnamed: 0": "feature"})
-            feature_period["period"] = period
-            feature_periods = pd.concat([feature_periods, feature_period])
-        feature_periods = feature_periods.set_index("period")
+        feature_periods = pd.concat(
+            [
+                pd.read_csv(f"{path}/features/{period}_{feature}.csv")
+                for period in periods
+            ],
+        )
         feature_periods.to_csv(f"{path}/features/{feature}.csv")
+
+    nodes_df = pd.concat(
+        [pd.read_csv(f"{path}/nodes/{node_file}") for node_file in node_files],
+    )
+    nodes_df.to_csv(f"{path}/nodes/nodes.csv")
 
 
 def main(
