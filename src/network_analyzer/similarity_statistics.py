@@ -168,7 +168,7 @@ class SimilarityAndGainsStatistics(SimilarityStatistics):
             ][feature]["gain"].mean()
         feature_gain["global"] = self.similarity[feature]["gain"].mean()
         feature_gain["period"] = self.g.name
-        feature_gain = pd.DataFrame(feature_gain)
+        feature_gain = pd.DataFrame(feature_gain, index=[self.g.name])
         return feature_gain
 
     def get_gains_by_node(self, node: str) -> pd.DataFrame:

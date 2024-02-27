@@ -28,14 +28,17 @@ def get_statistics_all_networks(
         target_features,
         similarity_algorithm,
     )
-    pd.concat(
+    node_df = pd.concat(
         [sgs.gains_by_node, bs.nodes_to_dataframe()], join="outer", axis=1
-    ).fillna(0).to_csv(f"{save_path}/nodes/{g.name}_nodes.csv")
+    ).fillna(0)
+    node_df.to_csv(f"{save_path}/nodes/{g.name}_nodes.csv", index=False)
 
-    bs.network_to_dataframe().to_csv(f"{save_path}/networks/{g.name}_network.csv")
+    bs.network_to_dataframe().to_csv(
+        f"{save_path}/networks/{g.name}_network.csv", index=False
+    )
 
     for feature, feature_data in sgs.gains_by_feature.items():
-        feature_data.to_csv(f"{save_path}/features/{g.name}_{feature}.csv")
+        feature_data.to_csv(f"{save_path}/features/{g.name}_{feature}.csv", index=False)
 
     semaphore.release()
 
