@@ -20,7 +20,7 @@ class SimilarityStatistics:
             name=g.name,
             client_class="SimilarityStatistics",
             log_level=20,
-            log_file="logs/network_analyzer/similarity_statistics.log",
+            log_file=f"logs/network_analyzer/similarity_statistics/{g.name}_{similarity_algorithm}.log",
         )
 
         self.logger.info(
@@ -39,8 +39,8 @@ class SimilarityStatistics:
                 [("Base", "value"), ("Base", "label"), ("Base", "gain")]
             )
         )
-        similarity["Base", "value"] = pd.Series(base_similarity).to_frame("Base")
         similarity["Base", "label"] = "Base"
+        similarity["Base", "value"] = pd.Series(base_similarity).to_frame("Base")
         similarity["Base", "gain"] = 0
 
         for feature in self.target_features:
@@ -48,11 +48,10 @@ class SimilarityStatistics:
             feature_df = self.get_similarity_4_feature(feature)
             feature_df[feature, "gain"] = (
                 feature_df[feature, "value"] - similarity[("Base", "value")]
-            )
+            ) / similarity[("Base", "value")]
             similarity = pd.merge(
-                similarity, feature_df, left_index=True, right_index=True
+                similarity, feature_df, left_index=True, right_index=True, how="outer"
             )
-
         return similarity
 
     def get_subgraphs(self, feature: str) -> Mapping[str, nx.Graph]:
@@ -80,6 +79,8 @@ class SimilarityStatistics:
             return {k: 1 for k in subgraph.nodes()}
         if self.similarity_algorithm == "jaccard":
             similarities = nx.jaccard_coefficient(subgraph)
+        elif self.similarity_algorithm == "adamic_adar":
+            similarities = nx.adamic_adar_index(subgraph)
         else:
             raise ValueError("Similarity algorithm not implemented.")
         avg_similarity, node_neighbors = {}, {}
@@ -153,7 +154,7 @@ class SimilarityAndGainsStatistics(SimilarityStatistics):
         self.logger.info("Calculating gains by node")
         self.gains_by_node = pd.concat(
             [self.get_gains_by_node(node) for node in self.g.nodes()]
-        )
+        ).set_index("node_id")
 
         self.logger.info("Gains calculated")
 

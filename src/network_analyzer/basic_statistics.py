@@ -25,7 +25,7 @@ class BasicStatistics:
             name=g.name,
             client_class="BasicStatistics",
             log_level=20,
-            log_file="logs/network_analyzer/basic_statistics.log",
+            log_file=f"logs/network_analyzer/basic_statistics/{g.name}.log",
         )
 
         self.number_of_nodes = g.number_of_nodes()
@@ -130,6 +130,5 @@ class BasicStatistics:
         node_df = pd.concat(
             [degree_df, pagerank_df, betweenness_df, closeness_df], join="outer", axis=1
         ).fillna(0)
-        node_df["node_id"] = node_df.index
 
         return node_df
