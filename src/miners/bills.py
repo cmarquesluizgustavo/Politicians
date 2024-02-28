@@ -29,7 +29,14 @@ class BillsMiner(BaseMiner):
             output_path=self.output_path,
             **kwargs,
         )
-        self.proposal_types = ["PL", "PEC", "PLN", "PLP", "PLV", "PLC"]
+        self.proposal_types = [
+            "PL",
+            "PEC",
+            "PLN",
+            "PLP",
+            "PLV",
+            "PLC",
+        ]
         self.years = list(range(2000, 2024))
 
     async def get_proposals(self, year: int):
@@ -48,7 +55,7 @@ class BillsMiner(BaseMiner):
             self.logger.info("Finished downloading proposals for year %s.", year)
 
     def create_dataframe(self):
-        """ "
+        """
         Create a dataframe with all the proposals.
         """
         proposals = pd.DataFrame()
