@@ -20,6 +20,14 @@ class NetworkAnalyzerLogger(logging.Logger):
             name, client_class, log_level, log_file, kwargs.get("terminal", False)
         )
 
+    def info(self, msg, *args, **kwargs):
+        """
+        Log an info message. Custom to add a timestamp to the message.
+        """
+        super().info(
+            f"{datetime.now().strftime('%Y-%m-%d@%H:%M:%S')} - {msg}", *args, **kwargs
+        )
+
     def handle_logging(self, name, client_class, log_level, log_file, terminal) -> None:
         """
         Set up logging configurations.
