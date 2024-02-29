@@ -14,13 +14,34 @@ def pre_processing(data: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: The treated data.
     """
     data["occupation"] = data["occupation"].apply(get_occupation)
-    data["education_level"] = data["education"].apply(get_eduction_level)
+    data["education"] = data["education"].apply(get_eduction_level)
     data["marital_status"] = data["marital_status"].apply(get_marital_status)
     data["age"] = data.apply(
         lambda x: get_age(x["dataNascimento"], x["election_year"]), axis=1
     )
+    data["age_group"] = pd.cut(
+        data["age"],
+        bins=[0, 30, 40, 50, 60, 70, 80, 90, 100],
+        labels=["0-30", "30-40", "40-50", "50-60", "60-70", "70-80", "80-90", "90-100"],
+    )
     data["region"] = data["siglaUf"].apply(get_uf_region)
     data["gender"] = data["sexo"]
+
+    data["ethnicity"] = data["ethnicity"].apply(
+        lambda x: (
+            pd.NA
+            if (pd.isna(x) or x == "NÃO INFORMADO" or x == "NÃO DIVULGÁVEL")
+            else x
+        )
+    )
+
+    data.sort_values(by=["id", "election_year"], inplace=True)
+    data["ethnicity"] = data.groupby("id").ethnicity.bfill()
+    data["ethnicity"] = data.groupby("id").ethnicity.ffill()
+
+    data["education"] = data.groupby("id").education.bfill()
+    data["education"] = data.groupby("id").education.ffill()
+
     return data
 
 

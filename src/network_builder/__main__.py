@@ -20,9 +20,8 @@ congresspeople = congresspeople[
         "siglaPartido",
         "region",
         "occupation",
-        "marital_status",
         "ethnicity",
-        "age",
+        "age_group",
     ]
 ]
 
@@ -47,9 +46,8 @@ features = [
     "siglaPartido",
     "region",
     "occupation",
-    "marital_status",
     "ethnicity",
-    "age",
+    "age_group",
 ]
 
 factory = NetworkFactory(
