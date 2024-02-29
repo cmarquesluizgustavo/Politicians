@@ -7,7 +7,7 @@ from base_logger import NetworkAnalyzerLogger
 from basic_statistics import BasicStatistics
 from similarity_statistics import SimilarityAndGainsStatistics
 
-MAX_THREADS = 8
+MAX_THREADS = 12
 
 
 def get_statistics_all_networks(
@@ -20,6 +20,9 @@ def get_statistics_all_networks(
     """
     Get and save all statistics for the network
     """
+    os.makedirs(f"{save_path}/features/{similarity_algorithm}/network", exist_ok=True)
+    os.makedirs(f"{save_path}/features/{similarity_algorithm}/nodes", exist_ok=True)
+
     g = pickle.load(open(file, "rb"))
     bs = BasicStatistics(g)
 
@@ -31,6 +34,7 @@ def get_statistics_all_networks(
     node_df = pd.concat(
         [sgs.gains_by_node, bs.nodes_to_dataframe()], join="outer", axis=1
     ).fillna(0)
+    node_df["period"] = g.name
     node_df.to_csv(
         f"{save_path}/features/{similarity_algorithm}/nodes/{g.name}_nodes.csv"
     )
@@ -48,7 +52,7 @@ def get_statistics_all_networks(
     semaphore.release()
 
 
-def consolidate_files_per_feature(
+def consolidate_files_per_algorithm(
     path: str, similarity_algorithm: str, target_features: list
 ):
     network_features_files = os.listdir(
@@ -63,6 +67,15 @@ def consolidate_files_per_feature(
             for node_file in node_features_files
         ],
     )
+
+    for node_file in node_features_files:
+        period_node_df = pd.read_csv(
+            f"{path}/features/{similarity_algorithm}/nodes/{node_file}"
+        )
+        if 0 in period_node_df["period"].values:
+            print(node_file)
+
+    nodes_df = nodes_df.sort_values(by=["period"]).set_index("period")
     nodes_df.to_csv(f"{path}/features/{similarity_algorithm}/nodes.csv")
 
     for feature in target_features:
@@ -75,7 +88,10 @@ def consolidate_files_per_feature(
                 if feature in network_feature_file
             ],
         )
-        feature_periods.to_csv(f"{path}/features/{similarity_algorithm}/{feature}")
+        # Remove columns with all NaNs
+        feature_periods = feature_periods.drop(columns=["Unnamed: 0"], errors="ignore")
+        feature_periods = feature_periods.loc[:, feature_periods.notna().any()]
+        feature_periods.to_csv(f"{path}/features/{similarity_algorithm}/{feature}.csv")
 
 
 def consolidate_files(path: str, similarity_algorithms: list, target_features: list):
@@ -92,10 +108,11 @@ def consolidate_files(path: str, similarity_algorithms: list, target_features: l
             for network_file in networks_files
         ],
     )
-    networks_df.to_csv(f"{path}/networks/networks.csv")
+    networks_df = networks_df.sort_values(by=["period"])
+    networks_df.to_csv(f"{path}/networks/networks.csv", index=False)
 
     for similarity_algorithm in similarity_algorithms:
-        consolidate_files_per_feature(path, similarity_algorithm, target_features)
+        consolidate_files_per_algorithm(path, similarity_algorithm, target_features)
 
 
 def main(
@@ -115,9 +132,7 @@ def main(
         terminal=True,
     )
     os.makedirs(save_path, exist_ok=True)
-    os.makedirs(f"{save_path}/nodes", exist_ok=True)
     os.makedirs(f"{save_path}/networks", exist_ok=True)
-    os.makedirs(f"{save_path}/features", exist_ok=True)
 
     logger.info("Creating threads to get statistics for all networks.")
     threads = []
