@@ -21,16 +21,23 @@ class CongressPerson(Base):
     ethnicity = Column(String)
 
 
+class Network(Base):
+    __tablename__ = "Network"
+    id = Column(Integer, primary_key=True)
+    type = Column(String)
+
+
 class Term(Base):
     __tablename__ = "Term"
     id = Column(Integer, primary_key=True)
     congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"))
+    network_id = Column(Integer, ForeignKey("Network.id"))
 
     state = Column(String)
     party = Column(String)
 
-    network_id = Column(Integer)
     congressperson = relationship("CongressPerson", backref="Terms")
+    network = relationship("Network", backref="Terms")
 
 
 class Bill(Base):
@@ -52,57 +59,28 @@ class Authorship(Base):
     bill = relationship("Bill", backref="Authors")
 
 
-class Network(Base):
-    id = Column(Integer, primary_key=True)
-    type = Column(String)
-
-
 class CongressPersonStatistics(Base):
+    __tablename__ = "CongressPersonStatistics"
     id = Column(Integer, primary_key=True)
     congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"))
     network_id = Column(Integer, ForeignKey("Network.id"))
-
-    total_bills = Column(Integer)
-
-    party = Column(String)
-    state = Column(String)
-    education = Column(String)
-    gender = Column(String)
-    region = Column(String)
-    occupation = Column(String)
-    ethnicity = Column(String)
-
-    degree = Column(Integer)
-    pagerank = Column(Float)
-    betweenness = Column(Float)
-    closeness = Column(Float)
 
     congressperson = relationship("CongressPerson", backref="Statistics")
     network = relationship("Network", backref="Statistics")
 
 
-class NetworkStatistics(Base):
+class Statistics(Base):
+    __tablename__ = "Statistics"
     id = Column(Integer, primary_key=True)
+    type = Column(String)
+    value = Column(Float)
+    label = Column(String)
+    congressperson_statistics_id = Column(
+        Integer, ForeignKey("CongressPersonStatistics.id")
+    )
     network_id = Column(Integer, ForeignKey("Network.id"))
 
-    total_bills = Column(Integer)
-
-    number_of_nodes = Column(Integer)
-    number_of_edges = Column(Integer)
-    average_degree = Column(Float)
-    density = Column(Float)
-    connected_components = Column(Integer)
-    largest_cc_rel_size = Column(Float)
-    global_clustering = Column(Float)
-    avg_clustering = Column(Float)
-    diameter = Column(Integer)
-
-    party = Column(String)
-    state = Column(String)
-    education = Column(String)
-    gender = Column(String)
-    region = Column(String)
-    occupation = Column(String)
-    ethnicity = Column(String)
-
+    congressperson_statistics = relationship(
+        "CongressPersonStatistics", backref="Statistics"
+    )
     network = relationship("Network", backref="Statistics")
