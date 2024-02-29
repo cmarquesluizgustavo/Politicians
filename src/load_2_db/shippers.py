@@ -1,3 +1,4 @@
+from cycler import V
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -8,7 +9,7 @@ from src.models import (
     Authorship,
     Network,
     CongressPersonStatistics,
-    NetworkStatistics,
+    Statistics,
 )
 
 
@@ -33,13 +34,20 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
     session.commit()
 
 
+def add_networks_to_db(networks_df: pd.DataFrame, session: Session):
+    for network_id, network_type in networks_df.items():
+        network = Network(id=network_id, type=network_type)
+        session.add(network)
+    session.commit()
+
+
 def add_terms_to_db(congresspeople_df: pd.DataFrame, session: Session):
     for index, row in congresspeople_df.iterrows():
         term = Term(
             congressperson_id=row["id"],
+            network_id=row["idLegislatura"],
             state=row["siglaUf"],
             party=row["siglaPartido"],
-            network_id=row["idLegislatura"],
         )
         session.add(term)
         session.commit()
@@ -68,10 +76,16 @@ def add_authorship_to_db(authors_df: pd.DataFrame, session: Session):
     session.commit()
 
 
-def add_networks_to_db(networks: dict, session: Session):
-    for network_id, network_type in networks.items():
-        network = Network(id=network_id, type=network_type)
-        session.add(network)
+def add_statistics_to_db(statistics_df: pd.DataFrame, session: Session):
+    for index, row in statistics_df.iterrows():
+        statistics = Statistics(
+            type=row["type"],
+            value=row["value"],
+            label=row["label"],
+            congressperson_statistics_id=row["congressperson_statistics_id"],
+            network_id=row["network_id"],
+        )
+        session.add(statistics)
     session.commit()
 
 
@@ -80,55 +94,15 @@ def add_congressperson_statistics_to_db(
 ):
     for index, row in congressperson_statistics_df.iterrows():
         congressperson_statistics = CongressPersonStatistics(
-            congressperson_id=row["id"],
-            network_id=row["idLegislatura"],
-            total_bills=row["total_bills"],
-            party=row["siglaPartido"],
-            state=row["state"],
-            education=row["education"],
-            gender=row["gender"],
-            region=row["region"],
-            occupation=row["occupation"],
-            ethnicity=row["ethnicity"],
-            degree=row["degree"],
-            pagerank=row["pagerank"],
-            betweenness=row["betweenness"],
-            closeness=row["closeness"],
+            id=row["id"],
+            congressperson_id=row["congressperson_id"],
+            network_id=row["network_id"],
         )
         session.add(congressperson_statistics)
     session.commit()
 
 
-def add_network_statistics_to_db(network_statistics_df: pd.DataFrame, session: Session):
-    for index, row in network_statistics_df.iterrows():
-        network_statistics = NetworkStatistics(
-            network_id=row["idLegislatura"],
-            total_bills=row["total_bills"],
-            number_of_nodes=row["number_of_nodes"],
-            number_of_edges=row["number_of_edges"],
-            average_degree=row["average_degree"],
-            density=row["density"],
-            connected_components=row["connected_components"],
-            largest_cc_rel_size=row["largest_cc_rel_size"],
-            global_clustering=row["global_clustering"],
-            avg_clustering=row["avg_clustering"],
-            diameter=row["diameter"],
-            party=row["party"],
-            state=row["state"],
-            education=row["education"],
-            gender=row["gender"],
-            region=row["region"],
-            occupation=row["occupation"],
-            ethnicity=row["ethnicity"],
-        )
-        session.add(network_statistics)
-    session.commit()
-
-
 def connect_to_db(DATABASE_URL: str):
-    if DATABASE_URL is None:
-        raise ValueError("DATABASE_URL not found in .env file.")
-
     # Create a connection to the database
     engine = create_engine(DATABASE_URL)
 
