@@ -1,4 +1,3 @@
-from cycler import V
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -8,7 +7,6 @@ from src.models import (
     Bill,
     Authorship,
     Network,
-    CongressPersonStatistics,
     Statistics,
 )
 
@@ -22,7 +20,7 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
                 id=row["id"],
                 name=row["nomeCivil"],
                 state=row["ufNascimento"],
-                education=row["education_level"],
+                education=row["education"],
                 birth_date=row["dataNascimento"],
                 sex=row["sexo"],
                 cpf=row["cpf"],
@@ -35,8 +33,8 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
 
 
 def add_networks_to_db(networks_df: pd.DataFrame, session: Session):
-    for network_id, network_type in networks_df.items():
-        network = Network(id=network_id, type=network_type)
+    for index, row in networks_df.iterrows():
+        network = Network(id=row["period"], type=row["type"])
         session.add(network)
     session.commit()
 
@@ -48,6 +46,8 @@ def add_terms_to_db(congresspeople_df: pd.DataFrame, session: Session):
             network_id=row["idLegislatura"],
             state=row["siglaUf"],
             party=row["siglaPartido"],
+            region=row["region"],
+            age_group=row["age_group"],
         )
         session.add(term)
         session.commit()
@@ -82,23 +82,10 @@ def add_statistics_to_db(statistics_df: pd.DataFrame, session: Session):
             type=row["type"],
             value=row["value"],
             label=row["label"],
-            congressperson_statistics_id=row["congressperson_statistics_id"],
             network_id=row["network_id"],
+            congressperson_id=row["congressperson_id"],
         )
         session.add(statistics)
-    session.commit()
-
-
-def add_congressperson_statistics_to_db(
-    congressperson_statistics_df: pd.DataFrame, session: Session
-):
-    for index, row in congressperson_statistics_df.iterrows():
-        congressperson_statistics = CongressPersonStatistics(
-            id=row["id"],
-            congressperson_id=row["congressperson_id"],
-            network_id=row["network_id"],
-        )
-        session.add(congressperson_statistics)
     session.commit()
 
 
