@@ -35,9 +35,10 @@ class Term(Base):
 
     state = Column(String)
     party = Column(String)
+    region = Column(String)
 
-    congressperson = relationship("CongressPerson", backref="Terms")
-    network = relationship("Network", backref="Terms")
+    # congressperson = relationship("CongressPerson", backref="Terms")
+    # network = relationship("Network", backref="Terms")
 
 
 class Bill(Base):
@@ -55,18 +56,8 @@ class Authorship(Base):
     id = Column(Integer, primary_key=True)
     congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"))
     bill_id = Column(Integer, ForeignKey("Bill.id"))
-    congressperson = relationship("CongressPerson", backref="Authorships")
-    bill = relationship("Bill", backref="Authors")
-
-
-class CongressPersonStatistics(Base):
-    __tablename__ = "CongressPersonStatistics"
-    id = Column(Integer, primary_key=True)
-    congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"))
-    network_id = Column(Integer, ForeignKey("Network.id"))
-
-    congressperson = relationship("CongressPerson", backref="Statistics")
-    network = relationship("Network", backref="Statistics")
+    # congressperson = relationship("CongressPerson", backref="Authorships")
+    # bill = relationship("Bill", backref="Authors")
 
 
 class Statistics(Base):
@@ -75,12 +66,10 @@ class Statistics(Base):
     type = Column(String)
     value = Column(Float)
     label = Column(String)
-    congressperson_statistics_id = Column(
-        Integer, ForeignKey("CongressPersonStatistics.id")
-    )
     network_id = Column(Integer, ForeignKey("Network.id"))
+    congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"), nullable=True)
 
-    congressperson_statistics = relationship(
-        "CongressPersonStatistics", backref="Statistics"
-    )
-    network = relationship("Network", backref="Statistics")
+    # network = relationship("Network", backref="Statistics")
+    # congressperson_statistics = relationship(
+    #     "CongressPersonStatistics", backref="Statistics"
+    # )
