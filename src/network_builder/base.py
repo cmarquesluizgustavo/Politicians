@@ -131,11 +131,6 @@ class NetworkBuilder:
             f"logs/network_builder/network_builder_{self.period}.log",
         )
 
-        # self.add_nodes(congresspeople)
-        # for feature in features:
-        #     print(feature)
-        #     relations = self.createRelation(congresspeople, feature)
-        #     self.g.add_edges_from(relations, key=feature)
         self.add_nodes_attributes()
         self.logger.info("Nodes added")
         self.add_edges_proposals()
@@ -190,6 +185,9 @@ class NetworkBuilder:
         for proposal in self.proposals:
             authors = self.proposals[proposal]
             coauthors_len = len(self.proposals[proposal])
+            if coauthors_len > 2:
+                continue
+            authors = [author for author in authors if author in self.g.nodes]
             for i in range(coauthors_len):
                 for j in range(i + 1, coauthors_len):
                     if not self.g.has_edge(authors[i], authors[j]):
