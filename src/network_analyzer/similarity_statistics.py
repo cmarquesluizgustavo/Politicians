@@ -39,13 +39,18 @@ class SimilarityStatistics:
                 [("Base", "value"), ("Base", "label"), ("Base", "gain")]
             )
         )
-        similarity["Base", "label"] = "Base"
         similarity["Base", "value"] = pd.Series(base_similarity).to_frame("Base")
         similarity["Base", "gain"] = 0
+        similarity["Base", "label"] = "Base"
 
         for feature in self.target_features:
             self.logger.info("Calculating similarity for feature %s", feature)
             feature_df = self.get_similarity_4_feature(feature)
+            if feature_df.empty:
+                self.logger.info("Feature %s has no similarity", feature)
+                self.logger.info("Skipping feature and removing %s", feature)
+                self.target_features.remove(feature)
+                continue
             feature_df[feature, "gain"] = (
                 feature_df[feature, "value"] - similarity[("Base", "value")]
             ) / similarity[("Base", "value")]
@@ -58,7 +63,8 @@ class SimilarityStatistics:
         """
         This function returns the subgraphs induced by a feature.
         """
-        feature_values = set(nx.get_node_attributes(self.g, feature).values())
+        feature_values = nx.get_node_attributes(self.g, feature).values()
+        feature_values = list(set([v for v in feature_values if v == v]))
         feature_values_subgraphs = {}
         for feature_value in feature_values:
             feature_values_subgraphs[feature_value] = self.g.subgraph(
@@ -107,7 +113,8 @@ class SimilarityStatistics:
 
         for feature_value, subgraph in feature_values_subgraphs.items():
             avg_similarity = self.avg_similarity_4_nodes_by_graph(subgraph)
-
+            if avg_similarity == {}:
+                continue
             feature_similarity_df_inter = pd.DataFrame(
                 {
                     feature: feature_value,
@@ -121,7 +128,8 @@ class SimilarityStatistics:
             feature_similarity_df = pd.concat(
                 [feature_similarity_df, feature_similarity_df_inter]
             )
-
+        if feature_similarity_df.empty:
+            return pd.DataFrame()
         feature_similarity_df.columns = pd.MultiIndex.from_tuples(
             [(feature, "label"), (feature, "value")]
         )
