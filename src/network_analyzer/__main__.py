@@ -35,14 +35,17 @@ def get_statistics_4_network(
         bs.network_to_dataframe().to_csv(
             f"{save_path}/networks/{g.name}_network.csv", index=False
         )
+        bs.nodes_to_dataframe().to_csv(
+            f"{save_path}/nodes/{g.name}_nodes.csv", index=True
+        )
 
         for similarity_algorithm in similarity_algorithms:
             get_statistics_4_similarity_algorithm(
-                g, target_features, similarity_algorithm, save_path, bs
+                g, target_features, similarity_algorithm, save_path
             )
 
     except Exception as e:
-        logger.error(f"Error in file {file}: {e}")
+        logger.error("Error in file %s: %s", file, e)
 
     semaphore.release()
 
@@ -52,7 +55,6 @@ def get_statistics_4_similarity_algorithm(
     target_features,
     similarity_algorithm,
     save_path,
-    bs,
 ):
     """
     Get and save all statistics for the network using a specific similarity algorithm
@@ -65,11 +67,7 @@ def get_statistics_4_similarity_algorithm(
         target_features,
         similarity_algorithm,
     )
-    node_df = pd.concat(
-        [sgs.gains_by_node, bs.nodes_to_dataframe()], join="outer", axis=1
-    ).fillna(0)
-    node_df["period"] = g.name
-    node_df.to_csv(
+    sgs.gains_by_node.to_csv(
         f"{save_path}/features/{similarity_algorithm}/nodes/{g.name}_nodes.csv"
     )
 
@@ -95,13 +93,6 @@ def consolidate_files_4_algorithm(
             for node_file in node_features_files
         ],
     )
-
-    for node_file in node_features_files:
-        period_node_df = pd.read_csv(
-            f"{path}/features/{similarity_algorithm}/nodes/{node_file}"
-        )
-        if 0 in period_node_df["period"].values:
-            print(node_file)
 
     nodes_df = nodes_df.sort_values(by=["period"]).set_index("period")
     nodes_df.to_csv(f"{path}/features/{similarity_algorithm}/nodes.csv")
@@ -129,15 +120,24 @@ def consolidate_files(path: str, similarity_algorithms: list, target_features: l
     """
 
     networks_files = os.listdir(f"{path}/networks")
-
+    nodes_files = os.listdir(f"{path}/nodes")
     networks_df = pd.concat(
         [
             pd.read_csv(f"{path}/networks/{network_file}")
             for network_file in networks_files
         ],
     )
+    nodes_df = pd.concat(
+        [pd.read_csv(f"{path}/nodes/{node_file}") for node_file in nodes_files],
+    )
+
+    nodes_df = nodes_df[nodes_df["neighbors"] != 0]
+
     networks_df = networks_df.sort_values(by=["period"])
+    nodes_df = nodes_df.sort_values(by=["node_id", "period"])
+
     networks_df.to_csv(f"{path}/networks/networks.csv", index=False)
+    nodes_df.to_csv(f"{path}/nodes/nodes.csv", index=False)
 
     for similarity_algorithm in similarity_algorithms:
         consolidate_files_4_algorithm(path, similarity_algorithm, target_features)
@@ -155,6 +155,7 @@ def main(
 
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(f"{save_path}/networks", exist_ok=True)
+    os.makedirs(f"{save_path}/nodes", exist_ok=True)
 
     logger.info("Creating threads to get statistics for all networks.")
     threads = []
@@ -165,8 +166,8 @@ def main(
             target=get_statistics_4_network,
             args=(
                 file,
-                target_features,
-                similarity_algorithms,
+                target_features.copy(),
+                similarity_algorithms.copy(),
                 save_path,
                 semaphore,
             ),
@@ -185,7 +186,7 @@ def main(
 
 
 if __name__ == "__main__":
-    target_features = [
+    TARGET_FEATURES = [
         "siglaPartido",
         "siglaUf",
         "education",
@@ -195,11 +196,12 @@ if __name__ == "__main__":
         "ethnicity",
         "age_group",
     ]
-    similarity_algorithms = ["adamic_adar", "jaccard"]
-    files = [
+    SIMILARITY_ALGORITHMS = ["adamic_adar", "jaccard"]
+    FILES = [
         f"data/network_builder/{file}"
         for file in os.listdir("data/network_builder")
         if file.endswith(".pkl")
     ]
-    save_path = "data/network_analyzer"
-    main(files, target_features, similarity_algorithms, save_path)
+    FILES.sort()
+    SAVE_PATH = "data/network_analyzer"
+    main(FILES, TARGET_FEATURES, SIMILARITY_ALGORITHMS, SAVE_PATH)
