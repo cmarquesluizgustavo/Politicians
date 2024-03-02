@@ -21,11 +21,12 @@ PROPOSALS_PATH = "data/miners/proposals/proposals.csv"
 AUTHORS_PATH = "data/miners/authors/authors.csv"
 
 NETWORKS_PATH = "data/network_analyzer/networks/networks.csv"
-NETWORKS_FEATURES_PATH = "data/network_analyzer/networks/networks_features.csv"
+NODES_PATH = "data/network_analyzer/nodes/nodes.csv"
 FEATURES_PATH = "data/network_analyzer/features/"
 
 features = [
     "age_group.csv",
+    "ethnicity.csv",
     "gender.csv",
     "occupation.csv",
     "siglaPartido.csv",
@@ -35,10 +36,13 @@ features = [
 ]
 
 
-networks_df = pd.read_csv(NETWORKS_PATH)
 congresspeople_df = pd.read_csv(CONGRESSPEOPLE_PATH)
 proposals_df = pd.read_csv(PROPOSALS_PATH)
 authors_df = pd.read_csv(AUTHORS_PATH)
+
+networks_df = pd.read_csv(NETWORKS_PATH)
+nodes_df = pd.read_csv(NODES_PATH)
+
 
 congresspeople_df = pre_processing(congresspeople_df)
 authors_df = authors_df[
@@ -47,6 +51,7 @@ authors_df = authors_df[
     & (authors_df["id"].isin(congresspeople_df["id"]))
 ]
 networks_df.drop(columns=["Unnamed: 0"], inplace=True, errors="ignore")
+nodes_df = nodes_df[nodes_df["neighbors"] != 0]
 
 # Getting the statistics from the features
 features_networks_df = pd.DataFrame()
@@ -57,11 +62,16 @@ for algorithm in os.listdir(FEATURES_PATH):
             continue
         feature_df = pd.read_csv(f"{FEATURES_PATH}{algorithm}/{feature}")
         feature_df["type"] = algorithm
+        feature = feature.split(".")[0]
+        feature_df = feature_df.rename(
+            columns={"global": f"global_{feature}", "other": f"other_{feature}"},
+            errors="ignore",
+        )
         features_networks_df = pd.concat([features_networks_df, feature_df])
 
-    nodes_df = pd.read_csv(f"{FEATURES_PATH}{algorithm}/nodes.csv")
-    nodes_df["type"] = algorithm
-    features_nodes_df = pd.concat([features_nodes_df, nodes_df])
+    feature_nodes_df = pd.read_csv(f"{FEATURES_PATH}{algorithm}/nodes.csv")
+    feature_nodes_df["type"] = algorithm
+    features_nodes_df = pd.concat([features_nodes_df, feature_nodes_df])
 
 features_networks_df.drop(columns=["Unnamed: 0"], inplace=True, errors="ignore")
 features_networks_df = features_networks_df.set_index(["period", "type"])
@@ -81,6 +91,7 @@ features_nodes_df.columns = [
 features_nodes_df = features_nodes_df[
     features_nodes_df["congressperson_id"].isin(congresspeople_df["id"])
 ]
+features_nodes_df = features_nodes_df[features_nodes_df["value"] != 0]
 
 # Convert networks_df to statistics_df
 networks_statistics_df = networks_df.set_index("period")
@@ -90,9 +101,24 @@ networks_statistics_df.columns = ["network_id", "label", "value"]
 networks_statistics_df["type"] = "network"
 networks_statistics_df["congressperson_id"] = None
 
+# Convert nodes_df to statistics_df
+nodes_statistics_df = nodes_df.set_index(["period", "node_id"])
+nodes_statistics_df = nodes_statistics_df.stack().reset_index()
+nodes_statistics_df.columns = [
+    "network_id",
+    "congressperson_id",
+    "label",
+    "value",
+]
+nodes_statistics_df["type"] = "node"
 
 statistics_df = pd.concat(
-    [networks_statistics_df, features_networks_df, features_nodes_df]
+    [
+        networks_statistics_df,
+        nodes_statistics_df,
+        features_networks_df,
+        features_nodes_df,
+    ]
 )
 
 session = connect_to_db(DATABASE_URL)
