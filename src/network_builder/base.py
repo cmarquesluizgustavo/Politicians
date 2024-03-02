@@ -183,11 +183,12 @@ class NetworkBuilder:
         Add edges to the graph
         """
         for proposal in self.proposals:
-            authors = self.proposals[proposal]
-            coauthors_len = len(self.proposals[proposal])
-            if coauthors_len > 2:
+            authors = [
+                author for author in self.proposals[proposal] if author in self.g.nodes
+            ]
+            coauthors_len = len(authors)
+            if coauthors_len < 2:
                 continue
-            authors = [author for author in authors if author in self.g.nodes]
             for i in range(coauthors_len):
                 for j in range(i + 1, coauthors_len):
                     if not self.g.has_edge(authors[i], authors[j]):
