@@ -13,7 +13,7 @@ class SimilarityStatistics:
 
     def __init__(self, g: nx.Graph, target_features: list, similarity_algorithm: str):
         self.g = g
-        self.target_features = target_features
+        self.target_features = target_features.copy()
         self.similarity_algorithm = similarity_algorithm
 
         self.logger = NetworkAnalyzerLogger(
@@ -43,13 +43,14 @@ class SimilarityStatistics:
         similarity["Base", "gain"] = 0
         similarity["Base", "label"] = "Base"
 
+        empty_features = []
         for feature in self.target_features:
             self.logger.info("Calculating similarity for feature %s", feature)
             feature_df = self.get_similarity_4_feature(feature)
             if feature_df.empty:
                 self.logger.info("Feature %s has no similarity", feature)
                 self.logger.info("Skipping feature and removing %s", feature)
-                self.target_features.remove(feature)
+                empty_features.append(feature)
                 continue
             feature_df[feature, "gain"] = (
                 feature_df[feature, "value"] - similarity[("Base", "value")]
@@ -57,6 +58,9 @@ class SimilarityStatistics:
             similarity = pd.merge(
                 similarity, feature_df, left_index=True, right_index=True, how="outer"
             )
+        self.target_features = [
+            f for f in self.target_features if f not in empty_features
+        ]
         return similarity
 
     def get_subgraphs(self, feature: str) -> Mapping[str, nx.Graph]:
