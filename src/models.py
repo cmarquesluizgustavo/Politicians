@@ -36,6 +36,7 @@ class Term(Base):
     state = Column(String)
     party = Column(String)
     region = Column(String)
+    age_group = Column(String)
 
     # congressperson = relationship("CongressPerson", backref="Terms")
     # network = relationship("Network", backref="Terms")
