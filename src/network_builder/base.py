@@ -15,31 +15,24 @@ class NetworkFactory:
     def __init__(
         self,
         congresspeople: pd.DataFrame,
-        authors_dict: dict[int, dict[int, list[int]]],
+        authorship: pd.DataFrame,
         features: list[str],
         path_to_save: str,
     ):
         """
         Args:
             congresspeople (pd.DataFrame): DataFrame with congresspeople data
-            authors_dict (dict[int, list[str]]): Dictionary with keys as years and
-                values as a dict with proposal as key and list of authors as value
+            authorship (pd.DataFrame): DataFrame with proposals data, containing the authors and the year
             features (list[str]): List of features to add to the graph
         """
         self.congresspeople = congresspeople
-        self.authors_dict = authors_dict
+        self.authorship = authorship
         self.features = features
         self.path_to_save = path_to_save
         os.makedirs(self.path_to_save, exist_ok=True)
 
-    def _create_network(self, congress, proposals, period, path):
-        NetworkBuilder(
-            congresspeople=congress,
-            proposals=proposals,
-            features=self.features,
-            period=period,
-            path=path,
-        )
+    def _create_network(self, congress, authorship, period, path):
+        NetworkBuilder(congress, authorship, self.features, str(period), path)
 
     def create_networks(self):
         """
@@ -47,16 +40,17 @@ class NetworkFactory:
         """
         threads = []
 
-        for year in self.authors_dict.keys():
+        for year in self.authorship["year"].unique():
             id_legislatura = (year - 1999) // 4 + 51
             congress = self.congresspeople[
                 self.congresspeople["idLegislatura"] == id_legislatura
             ]
-            proposals = self.authors_dict[year]
+            authorship = self.authorship[self.authorship["year"] == year]
             path = f"{self.path_to_save}/{year}.pkl"
 
             thread = threading.Thread(
-                target=self._create_network, args=(congress, proposals, str(year), path)
+                target=self._create_network,
+                args=(congress, authorship, str(year), path),
             )
             threads.append(thread)
             thread.start()
@@ -74,16 +68,18 @@ class NetworkFactory:
             congress = self.congresspeople[
                 self.congresspeople["idLegislatura"] == id_legislatura
             ]
-            years = list(range(election_year[55] + 1, election_year[55] + 5))
-            authors_dict_term = {}
-            for year in years:
-                authors_dict_term = {**authors_dict_term, **self.authors_dict[year]}
+            years = list(
+                range(
+                    election_year[id_legislatura] + 1, election_year[id_legislatura] + 5
+                )
+            )
+            authorship = self.authorship[self.authorship["year"].isin(years)]
 
             path = f"{self.path_to_save}/{id_legislatura}.pkl"
 
             thread = threading.Thread(
                 target=self._create_network,
-                args=(congress, authors_dict_term, str(id_legislatura), path),
+                args=(congress, authorship, str(id_legislatura), path),
             )
             threads.append(thread)
             thread.start()
@@ -104,7 +100,7 @@ class NetworkBuilder:
     def __init__(
         self,
         congresspeople: pd.DataFrame,
-        proposals: dict[int, list[int]],
+        authorship: pd.DataFrame,
         features: list[str],
         period: str,
         path: str,
@@ -112,15 +108,14 @@ class NetworkBuilder:
         """
         Args:
             congresspeople (pd.DataFrame): DataFrame with congresspeople data
-            authors_dict dict[int, list[int]]: Dictionary with proposal
-                                               as key and list of authors as value
+            authorship: DataFrame with proposals data, containing the authors and the year
             features (list[str]): List of features to add to the graph
             period (str): Period of the congress
         """
         self.g = nx.Graph()
         self.g.name = period
         self.congresspeople = congresspeople
-        self.proposals = proposals
+        self.authorship = authorship
         self.features = features
         self.period = period
         self.path = path
@@ -182,12 +177,12 @@ class NetworkBuilder:
         """
         Add edges to the graph
         """
-        for proposal in self.proposals:
-            authors = [
-                author for author in self.proposals[proposal] if author in self.g.nodes
-            ]
+        for proposal in self.authorship["idProposicao"].unique():
+            authors = self.authorship[self.authorship["idProposicao"] == proposal][
+                "id"
+            ].to_list()
             coauthors_len = len(authors)
-            if coauthors_len < 2:
+            if 2 > coauthors_len < 10:
                 continue
             for i in range(coauthors_len):
                 for j in range(i + 1, coauthors_len):

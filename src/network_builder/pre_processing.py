@@ -42,7 +42,22 @@ def pre_processing(data: pd.DataFrame) -> pd.DataFrame:
     data["education"] = data.groupby("id").education.bfill()
     data["education"] = data.groupby("id").education.ffill()
 
-    return data
+    return data[
+        [
+            "id",
+            "idLegislatura",
+            "election_year",
+            "nomeEleitoral",
+            "education",
+            "gender",
+            "siglaUf",
+            "siglaPartido",
+            "region",
+            "occupation",
+            "ethnicity",
+            "age_group",
+        ]
+    ]
 
 
 def get_uf_region(uf):
