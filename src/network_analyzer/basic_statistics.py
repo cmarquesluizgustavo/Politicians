@@ -127,8 +127,21 @@ class BasicStatistics:
             self.centrality_distributions["closeness_distribution"].items(),
             columns=["node_id", "closeness"],
         ).set_index("node_id")
+        neighbors_df = pd.DataFrame(
+            {
+                "node_id": list(self.g.nodes()),
+                "neighbors": [
+                    len(list(self.g.neighbors(node))) for node in self.g.nodes()
+                ],
+            }
+        ).set_index("node_id")
         node_df = pd.concat(
-            [degree_df, pagerank_df, betweenness_df, closeness_df], join="outer", axis=1
+            [degree_df, pagerank_df, betweenness_df, closeness_df, neighbors_df],
+            join="outer",
+            axis=1,
         ).fillna(0)
+        node_df["period"] = self.g.name
+        node_df.set_index("period", append=True, inplace=True)
+        # node_df = node_df[node_df["neighbors"] != 0]
 
         return node_df
