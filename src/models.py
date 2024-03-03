@@ -1,6 +1,8 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float
-from sqlalchemy.orm import relationship
+from traitlets import Int
+
+# from sqlalchemy.orm import relationship
 
 
 class Base(DeclarativeBase):
@@ -11,9 +13,9 @@ class CongressPerson(Base):
     __tablename__ = "CongressPerson"
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    state = Column(String)
-    education = Column(String)
+    birth_state = Column(String)
     birth_date = Column(DateTime)
+    education = Column(String)
     sex = Column(String)
     cpf = Column(String)
     social_network = Column(String)
@@ -61,14 +63,20 @@ class Authorship(Base):
     # bill = relationship("Bill", backref="Authors")
 
 
+class StatisticsTypeLabel(Base):
+    __tablename__ = "StatisticsTypeLabel"
+    id = Column(Integer, primary_key=True)
+    label = Column(String)
+    type = Column(String)
+
+
 class Statistics(Base):
     __tablename__ = "Statistics"
     id = Column(Integer, primary_key=True)
-    type = Column(String)
-    value = Column(Float)
-    label = Column(String)
+    type_label_id = Column(Integer, ForeignKey("StatisticsTypeLabel.id"))
     network_id = Column(Integer, ForeignKey("Network.id"))
     congressperson_id = Column(Integer, ForeignKey("CongressPerson.id"), nullable=True)
+    value = Column(Float)
 
     # network = relationship("Network", backref="Statistics")
     # congressperson_statistics = relationship(

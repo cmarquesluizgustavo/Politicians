@@ -8,6 +8,7 @@ from src.models import (
     Authorship,
     Network,
     Statistics,
+    StatisticsLabel,
 )
 
 
@@ -19,10 +20,10 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
             congressperson = CongressPerson(
                 id=row["id"],
                 name=row["nomeCivil"],
-                state=row["ufNascimento"],
+                birth_state=row["ufNascimento"],
                 education=row["education"],
                 birth_date=row["dataNascimento"],
-                sex=row["sexo"],
+                sex=row["gender"],
                 cpf=row["cpf"],
                 social_network=row["redeSocial"],
                 occupation=row["occupation"],
@@ -33,7 +34,7 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
 
 
 def add_networks_to_db(networks_df: pd.DataFrame, session: Session):
-    for index, row in networks_df.iterrows():
+    for index, row in networks_df[["period", "type"]].drop_duplicates().iterrows():
         network = Network(id=row["period"], type=row["type"])
         session.add(network)
     session.commit()
@@ -73,6 +74,13 @@ def add_authorship_to_db(authors_df: pd.DataFrame, session: Session):
             bill_id=row["idProposicao"], congressperson_id=row["id"]
         )
         session.add(authorship)
+    session.commit()
+
+
+def add_type_and_label_to_db(statistics_df: pd.DataFrame, session: Session):
+    for index, row in statistics_df[["type", "label"]].drop_duplicates().iterrows():
+        type_label = StatisticsLabel(type=row["type"], label=row["label"])
+        session.add(type_label)
     session.commit()
 
 

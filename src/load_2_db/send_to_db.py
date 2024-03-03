@@ -10,6 +10,7 @@ from src.load_2_db.shippers import (
     add_authorship_to_db,
     add_networks_to_db,
     add_statistics_to_db,
+    add_type_and_label_to_db,
 )
 
 DATABASE_URL = dotenv.get_key(dotenv.find_dotenv(), "DATABASE_URL")
@@ -121,12 +122,14 @@ statistics_df = pd.concat(
     ]
 )
 
+
 session = connect_to_db(DATABASE_URL)
 add_congresspeople_to_db(congresspeople_df, session)
-add_networks_to_db(networks_df[["period", "type"]].drop_duplicates(), session)
+add_networks_to_db(networks_df, session)
 add_terms_to_db(congresspeople_df, session)
 add_bills_to_db(proposals_df, session)
 add_authorship_to_db(authors_df, session)
 add_statistics_to_db(statistics_df, session)
+add_type_and_label_to_db(statistics_df, session)
 
 session.close()
