@@ -7,14 +7,6 @@ from run_statistics import get_statistics_4_network
 
 MAX_THREADS = 8
 
-logger = NetworkAnalyzerLogger(
-    name="AllNetworks",
-    client_class="ThreadRunner",
-    log_level=20,
-    log_file="logs/network_analyzer/thread_runner/thread_runner.log",
-    terminal=True,
-)
-
 
 def main(
     files: list,
@@ -43,6 +35,7 @@ def main(
                 similarity_algorithms.copy(),
                 save_path,
                 semaphore,
+                logger,
             ),
         )
         threads.append(t)
@@ -60,6 +53,14 @@ def main(
 
 
 if __name__ == "__main__":
+    logger = NetworkAnalyzerLogger(
+        name="AllNetworks",
+        client_class="ThreadRunner",
+        log_level=20,
+        log_file="logs/network_analyzer/thread_runner/thread_runner.log",
+        terminal=True,
+    )
+
     TARGET_FEATURES = [
         "siglaPartido",
         "siglaUf",
