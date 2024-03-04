@@ -122,6 +122,11 @@ statistics_df = pd.concat(
     ]
 )
 
+# Congressperson_id must be None or isin congresspeople_df["id"]
+statistics_df = statistics_df[
+    (statistics_df["congressperson_id"].isna())
+    | (statistics_df["congressperson_id"].isin(congresspeople_df["id"]))
+]
 
 session = connect_to_db(DATABASE_URL)
 add_congresspeople_to_db(congresspeople_df, session)
