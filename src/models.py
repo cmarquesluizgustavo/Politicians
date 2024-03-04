@@ -1,6 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float
-from traitlets import Int
 
 # from sqlalchemy.orm import relationship
 

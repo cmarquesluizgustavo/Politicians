@@ -8,7 +8,7 @@ from src.models import (
     Authorship,
     Network,
     Statistics,
-    StatisticsLabel,
+    StatisticsTypeLabel,
 )
 
 
@@ -79,19 +79,31 @@ def add_authorship_to_db(authors_df: pd.DataFrame, session: Session):
 
 def add_type_and_label_to_db(statistics_df: pd.DataFrame, session: Session):
     for index, row in statistics_df[["type", "label"]].drop_duplicates().iterrows():
-        type_label = StatisticsLabel(type=row["type"], label=row["label"])
+        type_label = StatisticsTypeLabel(type=row["type"], label=row["label"])
         session.add(type_label)
     session.commit()
 
 
+def get_all_type_labels(session: Session):
+    return session.query(StatisticsTypeLabel).all()
+
+
 def add_statistics_to_db(statistics_df: pd.DataFrame, session: Session):
+    types_labels = get_all_type_labels(session)
+    types_labels_df = pd.DataFrame(
+        [
+            (type_label.id, type_label.type, type_label.label)
+            for type_label in types_labels
+        ],
+        columns=["type_label_id", "type", "label"],
+    )
+    statistics_df = statistics_df.merge(types_labels_df, on=["type", "label"])
     for index, row in statistics_df.iterrows():
         statistics = Statistics(
-            type=row["type"],
-            value=row["value"],
-            label=row["label"],
             network_id=row["network_id"],
             congressperson_id=row["congressperson_id"],
+            type_label_id=row["type_label_id"],
+            value=row["value"],
         )
         session.add(statistics)
     session.commit()

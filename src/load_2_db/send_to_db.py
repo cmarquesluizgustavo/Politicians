@@ -129,7 +129,7 @@ add_networks_to_db(networks_df, session)
 add_terms_to_db(congresspeople_df, session)
 add_bills_to_db(proposals_df, session)
 add_authorship_to_db(authors_df, session)
-add_statistics_to_db(statistics_df, session)
 add_type_and_label_to_db(statistics_df, session)
+add_statistics_to_db(statistics_df, session)
 
 session.close()
