@@ -67,6 +67,7 @@ class StatisticsTypeLabel(Base):
     id = Column(Integer, primary_key=True)
     label = Column(String)
     type = Column(String)
+    feature = Column(String)
 
 
 class Statistics(Base):

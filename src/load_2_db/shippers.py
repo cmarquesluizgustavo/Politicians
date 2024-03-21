@@ -78,8 +78,12 @@ def add_authorship_to_db(authors_df: pd.DataFrame, session: Session):
 
 
 def add_type_and_label_to_db(statistics_df: pd.DataFrame, session: Session):
-    for index, row in statistics_df[["type", "label"]].drop_duplicates().iterrows():
-        type_label = StatisticsTypeLabel(type=row["type"], label=row["label"])
+    for index, row in (
+        statistics_df[["type", "label", "feature"]].drop_duplicates().iterrows()
+    ):
+        type_label = StatisticsTypeLabel(
+            type=row["type"], label=row["label"], feature=row["feature"]
+        )
         session.add(type_label)
     session.commit()
 

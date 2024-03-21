@@ -68,6 +68,7 @@ for algorithm in os.listdir(FEATURES_PATH):
             columns={"global": f"global_{feature}", "other": f"other_{feature}"},
             errors="ignore",
         )
+        feature_df["feature"] = feature
         features_networks_df = pd.concat([features_networks_df, feature_df])
 
     feature_nodes_df = pd.read_csv(f"{FEATURES_PATH}{algorithm}/nodes.csv")
@@ -75,19 +76,21 @@ for algorithm in os.listdir(FEATURES_PATH):
     features_nodes_df = pd.concat([features_nodes_df, feature_nodes_df])
 
 features_networks_df.drop(columns=["Unnamed: 0"], inplace=True, errors="ignore")
-features_networks_df = features_networks_df.set_index(["period", "type"])
+features_networks_df = features_networks_df.set_index(["period", "type", "feature"])
 features_networks_df = features_networks_df.stack().reset_index()
-features_networks_df.columns = ["network_id", "type", "label", "value"]
+features_networks_df.columns = ["network_id", "type", "feature", "label", "value"]
 features_networks_df["congressperson_id"] = None
 
 features_nodes_df = features_nodes_df.set_index(["period", "node_id", "type"])
 features_nodes_df = features_nodes_df.stack().reset_index()
+features_nodes_df["feature"] = "node_" + features_nodes_df["level_3"]
 features_nodes_df.columns = [
     "network_id",
     "congressperson_id",
     "type",
     "label",
     "value",
+    "feature",
 ]
 features_nodes_df = features_nodes_df[
     features_nodes_df["congressperson_id"].isin(congresspeople_df["id"])
@@ -100,6 +103,7 @@ networks_statistics_df = networks_statistics_df.drop(columns=["type"])
 networks_statistics_df = networks_statistics_df.stack().reset_index()
 networks_statistics_df.columns = ["network_id", "label", "value"]
 networks_statistics_df["type"] = "network"
+networks_statistics_df["feature"] = "network"
 networks_statistics_df["congressperson_id"] = None
 
 # Convert nodes_df to statistics_df
@@ -112,6 +116,7 @@ nodes_statistics_df.columns = [
     "value",
 ]
 nodes_statistics_df["type"] = "node"
+nodes_statistics_df["feature"] = "node"
 
 statistics_df = pd.concat(
     [
