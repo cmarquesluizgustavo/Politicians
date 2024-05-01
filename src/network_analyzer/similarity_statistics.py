@@ -54,7 +54,7 @@ class SimilarityStatistics:
                 continue
             feature_df[feature, "gain"] = (
                 feature_df[feature, "value"] - similarity[("Base", "value")]
-            ) / similarity[("Base", "value")]
+            ).abs() / similarity[("Base", "value")]
             similarity = pd.merge(
                 similarity, feature_df, left_index=True, right_index=True, how="outer"
             )
