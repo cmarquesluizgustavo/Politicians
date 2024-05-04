@@ -63,8 +63,13 @@ class BaseMiner(ABC):
             )
 
     async def make_request(
-        self, url: str, session: ClientSession, headers: dict = {}, params: dict = {}
-    ) -> dict:
+        self,
+        url: str,
+        session: ClientSession,
+        headers: dict,
+        params: dict,
+        return_content: bool,
+    ) -> dict | bytes:
         """
         Make a request to the API.
 
@@ -99,7 +104,10 @@ class BaseMiner(ABC):
                             url,
                             request_id,
                         )
+                        if return_content:
+                            return await response.read()
                         return await response.json()
+
                     if response.status == 429:
                         retry_after = int(response.headers.get("Retry-After", 0))
                         await self.check_rate_limit(retry_after)
@@ -135,7 +143,11 @@ class BaseMiner(ABC):
             list: List of responses.
         """
         response = await self.make_request(
-            url=url, session=session, headers=headers, params=params
+            url=url,
+            session=session,
+            headers=headers,
+            params=params,
+            return_content=False,
         )
         links = response.get("links", {})
         if not links or len(links) < 2:
@@ -150,7 +162,11 @@ class BaseMiner(ABC):
             page_params["pagina"] = next_page_link
             tasks.append(
                 self.make_request(
-                    url, session=session, headers=headers, params=page_params
+                    url,
+                    session=session,
+                    headers=headers,
+                    params=page_params,
+                    return_content=False,
                 )
             )
         next_pages_data = await asyncio.gather(*tasks)
@@ -167,7 +183,9 @@ class BaseMiner(ABC):
         path_parameters: list[str],
         expected_data_key: str,
         headers: dict,
-    ) -> dict[str, dict]:
+        params: dict,
+        return_content: bool = False,
+    ) -> dict[str, dict | bytes]:
         """
         Fetch details of a list of urls asynchronously.
         Same endpoint, different IDs.
@@ -184,8 +202,17 @@ class BaseMiner(ABC):
             query = f"{url}/{path_parameter}"
             async with self.concurrency:
                 async with ClientSession() as session:
-                    response = await self.make_request(query, session, headers)
-                    if expected_data_key in response:
+                    response = await self.make_request(
+                        query,
+                        session,
+                        headers,
+                        params,
+                        return_content,
+                    )
+                    if return_content:
+                        data[path_parameter] = response
+                        self.logger.info("Fetched data %s from %s", path_parameter, url)
+                    elif expected_data_key in response:
                         data[path_parameter] = response[expected_data_key]
                         self.logger.info("Fetched data %s from %s", path_parameter, url)
                     else:

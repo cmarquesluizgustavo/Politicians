@@ -83,6 +83,7 @@ class CongressPeople(BaseMiner):
             congresspeople_ids,
             "dados",
             {"accept": "application/json"},
+            {},
         )
 
         # Add total status to each congressperson
