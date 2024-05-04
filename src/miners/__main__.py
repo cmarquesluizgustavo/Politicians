@@ -4,6 +4,8 @@ the miners and process the data to enrich the congresspeople data.
 It uses threading to run the miners in parallel.
 """
 
+from re import sub
+import sys
 import threading
 import numpy as np
 import pandas as pd
@@ -11,11 +13,13 @@ from congresspeople import CongressPeople
 from authors import AuthorsMiner
 from bills import BillsMiner
 from TSE import TSEReportsMiner
+from photos import CongressPeoplePhotos
 
 congresspeople = CongressPeople()
 authors = AuthorsMiner()
 proposals = BillsMiner()
 tse = TSEReportsMiner()
+photos = CongressPeoplePhotos()
 
 
 def process_congresspeople():
@@ -102,7 +106,7 @@ def process_congresspeople():
     )
 
 
-def mine():
+def mine(sub_methods: list[str]):
     """
     This function runs the miners in parallel using threading
     """
@@ -113,12 +117,24 @@ def mine():
     authors_thread = threading.Thread(target=authors.mine)
     proposals_thread = threading.Thread(target=proposals.mine)
     tse_thread = threading.Thread(target=tse.mine)
+    photos_thread = threading.Thread(target=photos.mine)
 
     # Add threads to the list
-    threads.append(congresspeople_thread)
-    threads.append(authors_thread)
-    threads.append(proposals_thread)
-    threads.append(tse_thread)
+    if sub_methods:
+        if "congresspeople" in sub_methods:
+            threads.append(congresspeople_thread)
+            threads.append(tse_thread)
+        if "proposals" in sub_methods:
+            threads.append(proposals_thread)
+            threads.append(authors_thread)
+        if "photos" in sub_methods:
+            threads.append(photos_thread)
+    else:
+        threads.append(congresspeople_thread)
+        threads.append(authors_thread)
+        threads.append(proposals_thread)
+        threads.append(tse_thread)
+        threads.append(photos_thread)
 
     # Start all threads
     for thread in threads:
@@ -130,5 +146,18 @@ def mine():
 
 
 if __name__ == "__main__":
-    mine()
-    process_congresspeople()
+    SUB_METHODS = [sub(r"^--", "", arg) for arg in sys.argv[1:] if arg.startswith("--")]
+    if not SUB_METHODS:
+        print(
+            """
+        If you want to choose specific miners, use the following arguments:
+        --congresspeople: Run congresspeople and TSE miners
+        --proposals: Run proposals and authors miners
+        --photos: Run photos miner
+        If no arguments are passed, all miners will be run.
+    """
+        )
+        SUB_METHODS = ["congresspeople", "proposals", "photos"]
+    mine(SUB_METHODS)
+    if "congresspeople" in SUB_METHODS:
+        process_congresspeople()
