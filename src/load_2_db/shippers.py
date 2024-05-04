@@ -134,18 +134,16 @@ def add_statistics_to_db(statistics_df: pd.DataFrame, session: Session):
 
 
 def add_photo_to_db(photos_dict: dict, session: Session):
-    counter = 0
-    for photo_id, photo in photos_dict.items():
-        congressperson = session.query(CongressPerson).filter_by(id=photo_id).first()
-        if not congressperson:
-            continue
-        congressperson.photo = photo
-        session.add(congressperson)
-        counter += 1
-        if counter % 100 == 0:
-            session.commit()
-
-    session.commit()
+    photos_keys = list(photos_dict.keys())
+    for i in range(0, len(photos_dict) + 1, 50):
+        ids = photos_keys[i : i + 50]
+        congresspeople = (
+            session.query(CongressPerson).filter(CongressPerson.id.in_(ids)).all()
+        )
+        for congressperson in congresspeople:
+            congressperson.photo = photos_dict[int(congressperson.id)]
+            session.add(congressperson)
+        session.commit()
 
 
 def connect_to_db(DATABASE_URL: str):
