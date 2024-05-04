@@ -11,6 +11,7 @@ from src.load_2_db.shippers import (
     add_networks_to_db,
     add_statistics_to_db,
     add_type_and_label_to_db,
+    add_photo_to_db,
 )
 
 DATABASE_URL = dotenv.get_key(dotenv.find_dotenv(), "DATABASE_URL")
@@ -133,6 +134,14 @@ statistics_df = statistics_df[
     | (statistics_df["congressperson_id"].isin(congresspeople_df["id"]))
 ]
 
+photos_dict = {}
+files = os.listdir("data/miners/photos/")
+for file in files:
+    with open(f"data/miners/photos/{file}", "rb") as f:
+        photo_id = int(file.split(".")[0])
+        photo = f.read().hex()
+        photos_dict[photo_id] = photo
+
 session = connect_to_db(DATABASE_URL)
 add_congresspeople_to_db(congresspeople_df, session)
 add_networks_to_db(networks_df, session)
@@ -141,5 +150,6 @@ add_bills_to_db(proposals_df, session)
 add_authorship_to_db(authors_df, session)
 add_type_and_label_to_db(statistics_df, session)
 add_statistics_to_db(statistics_df, session)
+add_photo_to_db(photos_dict, session)
 
 session.close()

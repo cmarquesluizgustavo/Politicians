@@ -33,8 +33,9 @@ def add_congresspeople_to_db(congresspeople_df: pd.DataFrame, session: Session):
             )
             session.add(congressperson)
             if counter % 100 == 0:
-                session.commit()            
+                session.commit()
     session.commit()
+
 
 def add_networks_to_db(networks_df: pd.DataFrame, session: Session):
     for index, row in networks_df[["period", "type"]].drop_duplicates().iterrows():
@@ -129,6 +130,21 @@ def add_statistics_to_db(statistics_df: pd.DataFrame, session: Session):
         session.add(statistics)
         if counter % 100 == 0:
             session.commit()
+    session.commit()
+
+
+def add_photo_to_db(photos_dict: dict, session: Session):
+    counter = 0
+    for photo_id, photo in photos_dict.items():
+        congressperson = session.query(CongressPerson).filter_by(id=photo_id).first()
+        if not congressperson:
+            continue
+        congressperson.photo = photo
+        session.add(congressperson)
+        counter += 1
+        if counter % 100 == 0:
+            session.commit()
+
     session.commit()
 
 

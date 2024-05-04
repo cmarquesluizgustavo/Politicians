@@ -20,6 +20,7 @@ class CongressPerson(Base):
     social_network = Column(String)
     occupation = Column(String)
     ethnicity = Column(String)
+    photo = Column(String, nullable=True)
 
 
 class Network(Base):
