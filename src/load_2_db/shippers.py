@@ -36,7 +36,7 @@ def add_congresspeople_to_db(
                 ethnicity=row["ethnicity"],
             )
             session.add(congressperson)
-            if counter % 100 == 0:
+            if counter % 100 == 0 and counter != 0:
                 session.commit()
                 logger.info(
                     "Added %d / %d congresspeople to the database.",
@@ -72,7 +72,7 @@ def add_terms_to_db(
             age_group=row["age_group"],
         )
         session.add(term)
-        if counter % 100 == 0:
+        if counter % 100 == 0 and counter != 0:
             session.commit()
             logger.info(
                 "Added %d / %d terms to the database.", counter, len_congresspeople_df
@@ -95,7 +95,7 @@ def add_bills_to_db(proposals_df: pd.DataFrame, session: Session, logger: BaseLo
             keywords=row["keywords"],
         )
         session.add(bill)
-        if counter % 100 == 0:
+        if counter % 100 == 0 and counter != 0:
             session.commit()
             logger.info(
                 "Added %d / %d bills to the database.", counter, len_proposals_df
@@ -114,7 +114,7 @@ def add_authorship_to_db(
             bill_id=row["idProposicao"], congressperson_id=row["id"]
         )
         session.add(authorship)
-        if counter % 100 == 0:
+        if counter % 100 == 0 and counter != 0:
             session.commit()
             logger.info(
                 "Added %d / %d authorship to the database.", counter, len_authors_df
@@ -137,7 +137,7 @@ def add_type_and_label_to_db(
             type=row["type"], label=row["label"], feature=row["feature"]
         )
         session.add(type_label)
-        if counter % 100 == 0:
+        if counter % 100 == 0 and counter != 0:
             session.commit()
             logger.info(
                 "Added %d / %d types and labels to the database.", counter, len_df
@@ -173,7 +173,7 @@ def add_statistics_to_db(
             value=row["value"],
         )
         session.add(statistics)
-        if counter % 100 == 0:
+        if counter % 100 == 0 and counter != 0:
             session.commit()
             logger.info(
                 "Added %d / %d statistics to the database.", counter, len_statistics_df
