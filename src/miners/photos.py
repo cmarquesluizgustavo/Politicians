@@ -5,8 +5,26 @@ CongressPeople photos class.
 import os
 import time
 import asyncio
+from io import BytesIO
 import pandas as pd
+from PIL import Image
 from base import BaseMiner
+
+
+def jpg_to_png(jpg_bytes: bytes) -> bytes:
+    # Open JPG image from bytes
+    jpg_image = Image.open(BytesIO(jpg_bytes))
+
+    # Create a buffer for PNG bytes
+    png_buffer = BytesIO()
+
+    # Convert JPG to PNG
+    jpg_image.save(png_buffer, format="PNG")
+
+    # Get PNG bytes from the buffer
+    png_bytes = png_buffer.getvalue()
+
+    return png_bytes
 
 
 class CongressPeoplePhotos(BaseMiner):
@@ -59,7 +77,14 @@ class CongressPeoplePhotos(BaseMiner):
                 self.logger.error(log_msg)
                 continue
             try:
-                with open(f"{self.output_path}/{photo_id}", "wb") as file:
+                photo = jpg_to_png(photo)
+            except Exception as e:
+                log_msg = f"Error converting photo {photo_id} to PNG. {e}"
+                self.logger.error(log_msg)
+                continue
+            try:
+                photo_id = photo_id.split(".")[0]
+                with open(f"{self.output_path}/{photo_id}.png", "wb") as file:
                     file.write(photo)
             except Exception as e:
                 log_msg = f"Error saving photo {photo_id}. {e}"
