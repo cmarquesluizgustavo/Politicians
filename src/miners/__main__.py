@@ -147,6 +147,12 @@ def mine(sub_methods: list[str]):
 
 if __name__ == "__main__":
     SUB_METHODS = [sub(r"^--", "", arg) for arg in sys.argv[1:] if arg.startswith("--")]
+    for arg in SUB_METHODS:
+        if arg not in ["congresspeople", "proposals", "photos"]:
+            print(f"Invalid argument: {arg}")
+            sys.exit(1)
+        else:
+            print(f"Running {arg} miner")
     if not SUB_METHODS:
         print(
             """
