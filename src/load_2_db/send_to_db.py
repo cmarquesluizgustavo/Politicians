@@ -1,4 +1,5 @@
 import os
+import base64
 import pandas as pd
 import dotenv
 from src.network_builder.pre_processing import pre_processing
@@ -160,8 +161,9 @@ files = os.listdir(PHOTOS_PATH)
 for file in files:
     with open(f"data/miners/photos/{file}", "rb") as f:
         photo_id = int(file.split(".")[0])
-        photo = f.read().hex()
+        photo = base64.b64encode(f.read())
         photos_dict[photo_id] = photo
+
 logger.info("Photos loaded successfully.")
 
 logger.info("Starting the loading process.")
