@@ -239,6 +239,7 @@ class BaseLogger(logging.Logger):
         Initialize the BaseLogger.
 
         Args:
+            name (str): Name of the logger.
             log_level (int): Logging level.
             log_file (str): Path to the log file.
             **kwargs: Additional arguments.
