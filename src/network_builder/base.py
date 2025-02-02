@@ -1,11 +1,12 @@
 import os
 import pickle
 import logging
-import threading
+import multiprocessing as mp
 from datetime import datetime
 import pandas as pd
 import networkx as nx
 
+MAX_PROCESSES = 8
 
 class NetworkFactory:
     """
@@ -31,15 +32,17 @@ class NetworkFactory:
         self.path_to_save = path_to_save
         os.makedirs(self.path_to_save, exist_ok=True)
 
-    def _create_network(self, congress, authorship, period, path):
+    def _create_network(self, args):
+        congress, authorship, period, path = args
         NetworkBuilder(congress, authorship, self.features, str(period), path)
 
     def create_networks(self):
         """
-        Create a network for each period
+        Create a network for each period using multiprocessing
         """
-        threads = []
+        process_args = []
 
+        # Prepare arguments for yearly networks
         for year in self.authorship["year"].unique():
             id_legislatura = (year - 1999) // 4 + 51
             congress = self.congresspeople[
@@ -47,46 +50,26 @@ class NetworkFactory:
             ]
             authorship = self.authorship[self.authorship["year"] == year]
             path = f"{self.path_to_save}/{year}.pkl"
+            process_args.append((congress, authorship, str(year), path))
 
-            thread = threading.Thread(
-                target=self._create_network,
-                args=(congress, authorship, str(year), path),
-            )
-            threads.append(thread)
-            thread.start()
-
+        # Prepare arguments for legislative period networks
         for id_legislatura in self.congresspeople["idLegislatura"].unique():
-            election_year = {
-                57: 2022,
-                56: 2018,
-                55: 2014,
-                54: 2010,
-                53: 2006,
-                52: 2002,
-                51: 1998,
-            }
+            base_year = 1998
+            term_length = 4
+            id_legislatura_start = 51
+            id_legislatura_offset = id_legislatura - id_legislatura_start
+            election_year = base_year + id_legislatura_offset * term_length
             congress = self.congresspeople[
                 self.congresspeople["idLegislatura"] == id_legislatura
             ]
-            years = list(
-                range(
-                    election_year[id_legislatura] + 1, election_year[id_legislatura] + 5
-                )
-            )
+            years = list(range(election_year + 1, election_year + term_length + 1))
             authorship = self.authorship[self.authorship["year"].isin(years)]
-
             path = f"{self.path_to_save}/{id_legislatura}.pkl"
+            process_args.append((congress, authorship, str(id_legislatura), path))
 
-            thread = threading.Thread(
-                target=self._create_network,
-                args=(congress, authorship, str(id_legislatura), path),
-            )
-            threads.append(thread)
-            thread.start()
-
-        # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
+        # Create and run processes using a pool
+        with mp.Pool(processes=MAX_PROCESSES) as pool:
+            pool.map(self._create_network, process_args)
 
 
 class NetworkBuilder:
