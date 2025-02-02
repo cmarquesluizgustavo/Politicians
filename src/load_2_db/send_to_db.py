@@ -67,6 +67,7 @@ authors_df = authors_df[
 ]
 networks_df.drop(columns=["Unnamed: 0"], inplace=True, errors="ignore")
 nodes_df = nodes_df[nodes_df["neighbors"] != 0]
+proposals_df.drop_duplicates(subset=["id"], inplace=True)
 logger.info("Pre-processing done.")
 
 logger.info("Getting the statistics from the features")
