@@ -28,7 +28,6 @@ class AuthorsMiner(BaseMiner):
             output_path=self.output_path,
             **kwargs,
         )
-        self.years = list(range(2000, 2025))
 
     async def get_authors(self, year, retry=0):
         """
@@ -91,10 +90,11 @@ class AuthorsMiner(BaseMiner):
             tasks.append(asyncio.create_task(self.get_authors(year)))
         await asyncio.gather(*tasks)
 
-    def mine(self):
+    def mine(self, target_years):
         """
         Mine the API for authors.
         """
+        self.years = target_years
         asyncio.run(self.run_tasks())
         self.create_dataframe()
         self.logger.info("Finished mining authors.")

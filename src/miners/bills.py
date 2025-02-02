@@ -37,7 +37,6 @@ class BillsMiner(BaseMiner):
             "PLV",
             "PLC",
         ]
-        self.years = list(range(2000, 2024))
 
     async def get_proposals(self, year: int):
         """
@@ -97,10 +96,11 @@ class BillsMiner(BaseMiner):
 
         await asyncio.gather(*tasks)
 
-    def mine(self):
+    def mine(self, target_years):
         """
         Mine the API for proposals.
         """
+        self.years = target_years
         asyncio.run(self.run_tasks())
         self.create_dataframe()
         self.logger.info("Finished mining proposals.")
