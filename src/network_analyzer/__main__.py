@@ -4,6 +4,8 @@ import time
 from multiprocessing import Pool
 from base_logger import NetworkAnalyzerLogger
 from task_processor import process_task
+from consolidate_results import consolidate_files
+
 
 MAX_PROCESSES = 8
 logger = NetworkAnalyzerLogger(
@@ -76,12 +78,12 @@ if __name__ == "__main__":
     ]
     
     if args.file:
-        FILES = [f"../../data/network_builder/{args.file}.pkl"]
+        FILES = [f"data/network_builder/{args.file}.pkl"]
         logger.info("Processing arg file %s only", args.file)
     else:
         FILES = [
-            f"../../data/network_builder/{file}"
-            for file in os.listdir("../../data/network_builder")
+            f"data/network_builder/{file}"
+            for file in os.listdir("data/network_builder")
             if file.endswith(".pkl") 
         ]
     FILES.sort()

@@ -1,5 +1,4 @@
 from base_logger import NetworkAnalyzerLogger
-from consolidate_results import consolidate_files
 from run_statistics import get_statistics_4_network
 
 logger = NetworkAnalyzerLogger(
