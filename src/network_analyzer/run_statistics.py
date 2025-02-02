@@ -22,20 +22,20 @@ def get_statistics_4_network(
         logger.error("Error loading file %s: %s", file, e)
         return
     
-    # try:
-    #     bs = BasicStatistics(g)
-    # except Exception as e:
-    #     logger.error("Error getting basic statistics for file %s: %s", file, e)
+    try:
+        bs = BasicStatistics(g)
+    except Exception as e:
+        logger.error("Error getting basic statistics for file %s: %s", file, e)
     
-    # try:
-    #     bs.network_to_dataframe().to_csv(
-    #         f"{save_path}/networks/{g.name}_network.csv", index=False
-    #     )
-    #     bs.nodes_to_dataframe().to_csv(
-    #         f"{save_path}/nodes/{g.name}_nodes.csv", index=True
-    #     )
-    # except Exception as e:
-    #     logger.error("Error saving basic statistics for file %s: %s", file, e)
+    try:
+        bs.network_to_dataframe().to_csv(
+            f"{save_path}/networks/{g.name}_network.csv", index=False
+        )
+        bs.nodes_to_dataframe().to_csv(
+            f"{save_path}/nodes/{g.name}_nodes.csv", index=True
+        )
+    except Exception as e:
+        logger.error("Error saving basic statistics for file %s: %s", file, e)
 
     try:
         for similarity_algorithm in similarity_algorithms:

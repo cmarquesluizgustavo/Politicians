@@ -1,10 +1,9 @@
 import os
 import argparse
 import time
-import multiprocessing
+from multiprocessing import Pool
 from base_logger import NetworkAnalyzerLogger
-from consolidate_results import consolidate_files
-from run_statistics import get_statistics_4_network
+from task_processor import process_task
 
 MAX_PROCESSES = 8
 logger = NetworkAnalyzerLogger(
@@ -15,26 +14,6 @@ logger = NetworkAnalyzerLogger(
     terminal=True,
 )
 
-
-def process_task(file, target_features, similarity_algorithms, save_path, semaphore):
-    """
-    Task function to be executed in a separate process.
-    """
-    with semaphore:  # Use a context manager to release the semaphore automatically
-        logger.info("Process for file %s started.", file)
-        try:
-            get_statistics_4_network(
-                file,
-                target_features.copy(),
-                similarity_algorithms.copy(),
-                save_path,
-                logger,
-            )
-            logger.info("Process for file %s completed.", file)
-        except Exception as e:
-            logger.error("Error in process for file %s: %s", file, str(e))
-
-
 def main(
     files: list,
     target_features: list,
@@ -42,40 +21,36 @@ def main(
     save_path: str,
 ):
     """
-    Runs processes to get statistics for all networks, limiting the number of concurrent processes.
+    Runs processes to get statistics for all networks using a process pool.
     """
-
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(f"{save_path}/networks", exist_ok=True)
     os.makedirs(f"{save_path}/nodes", exist_ok=True)
 
-    logger.info("Creating processes to get statistics for all networks.")
-    processes = []
-    semaphore = multiprocessing.Semaphore(MAX_PROCESSES)
+    logger.info("Creating process pool to get statistics for all networks.")
+    
+    # Prepare arguments for each task
+    task_args = [
+        (file, target_features, similarity_algorithms, save_path)
+        for file in files
+    ]
 
-    for file in files:
-        p = multiprocessing.Process(
-            target=process_task,
-            args=(
-                file,
-                target_features.copy(),
-                similarity_algorithms.copy(),
-                save_path,
-                semaphore,
-            ),
-        )
-        processes.append(p)
-        time.sleep(1.5)  # Avoids two processes to have the same name and log file
-        p.start()
-
-    logger.info("Waiting for all processes to finish.")
-    for p in processes:
-        p.join()
+    with Pool(processes=MAX_PROCESSES) as pool:
+        try:
+            results = pool.map_async(process_task, task_args)
+            results.wait()
+        except KeyboardInterrupt:
+            logger.warning("Received interrupt, terminating processes...")
+            pool.terminate()
+            raise
+        except Exception as e:
+            logger.error("Error in process pool: %s", str(e))
+            pool.terminate()
+            raise
 
     logger.info("All processes finished.")
     consolidate_files(save_path, similarity_algorithms, target_features)
     logger.info("Files consolidated.")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some files.")
@@ -99,56 +74,24 @@ if __name__ == "__main__":
         "jaccard",
         "adamic_adar",
     ]
+    
     if args.file:
-        FILES = [f"data/network_builder/{args.file}.pkl"]
+        FILES = [f"../../data/network_builder/{args.file}.pkl"]
         logger.info("Processing arg file %s only", args.file)
-
     else:
-        # networks_to_run = [52, 53, 54, 55, 56, 57]
-        networks_not_to_run = [1999,
-                2001,
-                2000,
-                2003,
-                2002,
-                2008,
-                2004,
-                2005,
-                2007,
-                2009,
-                2006,
-                2012,
-                2010,
-                2013,
-                2011,
-                2015,
-                2014,
-                2015
-                ]
         FILES = [
-            f"data/network_builder/{file}"
-            for file in os.listdir("data/network_builder")
-            if file.endswith(".pkl")  # and int(file.split(".")[0]) in networks_to_run
-            # and int(file.split(".")[0]) not in networks_not_to_run
+            f"../../data/network_builder/{file}"
+            for file in os.listdir("../../data/network_builder")
+            if file.endswith(".pkl") 
         ]
     FILES.sort()
     SAVE_PATH = "data/network_analyzer"
-    main(FILES, TARGET_FEATURES, SIMILARITY_ALGORITHMS, SAVE_PATH)
-
-# debug
-# files = ["data/network_builder/2024.pkl"]
-# target_features = [
-#     "siglaPartido",
-#     "siglaUf",
-#     "education",
-#     "gender",
-#     "region",
-#     "occupation",
-#     "ethnicity",
-#     "age_group",
-# ]
-# similarity_algorithms = [
-#     "weighted_jaccard",
-# ]
-# similarity_algorithm = similarity_algorithms[0]
-# save_path = "data/network_analyzer"
-# file = files[0]
+    
+    try:
+        main(FILES, TARGET_FEATURES, SIMILARITY_ALGORITHMS, SAVE_PATH)
+    except KeyboardInterrupt:
+        logger.warning("Process interrupted by user")
+        exit(1)
+    except Exception as e:
+        logger.error("Fatal error: %s", str(e))
+        exit(1)
