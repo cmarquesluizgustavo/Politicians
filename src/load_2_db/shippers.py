@@ -1,6 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.sql import text
 from src.models import (
     CongressPerson,
     Term,
@@ -72,7 +73,7 @@ def add_terms_to_db(
             age_group=row["age_group"],
         )
         session.add(term)
-        if counter % 100 == 0 and counter != 0:
+        if counter % 100 == 0 and counter != 0: # if bugs, make it 1
             session.commit()
             logger.info(
                 "Added %d / %d terms to the database.", counter, len_congresspeople_df
@@ -205,5 +206,12 @@ def connect_to_db(DATABASE_URL: str, logger: BaseLogger):
     # Create a session to interact with the database
     db_session = sessionmaker(bind=engine)
     session = db_session()
-    logger.info("Connected to the database.")
-    return session
+
+    # Check if the connection was successful
+    try:
+        session.execute(text('SELECT 1'))
+        logger.info("Connected to the database.")
+        return session
+    except Exception:
+        logger.error("Failed to connect to the database.")    
+        raise Exception("Failed to connect to the database.")
