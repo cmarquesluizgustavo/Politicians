@@ -1,6 +1,6 @@
 import os
 import pickle
-import threading
+import math
 from base_logger import NetworkAnalyzerLogger
 from basic_statistics import BasicStatistics
 from similarity_statistics import SimilarityAndGainsStatistics
@@ -11,7 +11,6 @@ def get_statistics_4_network(
     target_features: list,
     similarity_algorithms: list,
     save_path: str,
-    semaphore: threading.Semaphore,
     logger: NetworkAnalyzerLogger,
 ):
     """
@@ -19,24 +18,36 @@ def get_statistics_4_network(
     """
     try:
         g = pickle.load(open(file, "rb"))
-        bs = BasicStatistics(g)
+    except Exception as e:
+        logger.error("Error loading file %s: %s", file, e)
+        return
+    
+    # try:
+    #     bs = BasicStatistics(g)
+    # except Exception as e:
+    #     logger.error("Error getting basic statistics for file %s: %s", file, e)
+    
+    # try:
+    #     bs.network_to_dataframe().to_csv(
+    #         f"{save_path}/networks/{g.name}_network.csv", index=False
+    #     )
+    #     bs.nodes_to_dataframe().to_csv(
+    #         f"{save_path}/nodes/{g.name}_nodes.csv", index=True
+    #     )
+    # except Exception as e:
+    #     logger.error("Error saving basic statistics for file %s: %s", file, e)
 
-        bs.network_to_dataframe().to_csv(
-            f"{save_path}/networks/{g.name}_network.csv", index=False
-        )
-        bs.nodes_to_dataframe().to_csv(
-            f"{save_path}/nodes/{g.name}_nodes.csv", index=True
-        )
-
+    try:
         for similarity_algorithm in similarity_algorithms:
-            get_statistics_4_similarity_algorithm(
-                g, target_features, similarity_algorithm, save_path
-            )
+            try:
+                get_statistics_4_similarity_algorithm(
+                    g, target_features, similarity_algorithm, save_path
+                )
+            except Exception as e:
+                logger.error("Error getting statistic %s for file %s: %s", similarity_algorithm, file, e)
 
     except Exception as e:
-        logger.error("Error in file %s: %s", file, e)
-
-    semaphore.release()
+        logger.error("Error getting statistics for file %s: %s", file, e)
 
 
 def get_statistics_4_similarity_algorithm(

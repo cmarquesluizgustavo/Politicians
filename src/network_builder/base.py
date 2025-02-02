@@ -141,31 +141,6 @@ class NetworkBuilder:
         with open(self.path, "wb") as f:
             pickle.dump(self.g, f)
 
-    def create_relation(self, target_column: str):
-        """
-        Create relations between congresspeople based on a target column.
-        Args:
-            target_column (str): Column to create relations from
-        """
-        relations = []
-        for relation in self.congresspeople[target_column].unique():
-            target_df = self.congresspeople[
-                self.congresspeople[target_column] == relation
-            ]
-            for index, row in target_df.iterrows():
-                for index, row in target_df.loc[index + 1 :].iterrows():
-                    relations.append((row["id"], target_df.iloc[0]["id"]))
-        return relations
-
-    def add_nodes(self):
-        """'
-        Add nodes to the graph (without attributes)
-        Args:
-            congresspeople (pd.DataFrame): DataFrame with congresspeople data
-        """
-        for _, data in self.congresspeople.iterrows():
-            self.g.add_node(data["id"])
-
     def add_nodes_attributes(self):
         """
         Add nodes to the graph with attributes

@@ -15,6 +15,7 @@ def consolidate_files_4_algorithm(
         [
             pd.read_csv(f"{path}/features/{similarity_algorithm}/nodes/{node_file}")
             for node_file in node_features_files
+            if node_file.endswith(".csv")
         ],
     )
 
@@ -29,6 +30,7 @@ def consolidate_files_4_algorithm(
                 )
                 for network_feature_file in network_features_files
                 if feature in network_feature_file
+                and network_feature_file.endswith(".csv")
             ],
         )
         # Remove columns with all NaNs

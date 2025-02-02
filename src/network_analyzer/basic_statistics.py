@@ -34,9 +34,13 @@ class BasicStatistics:
         self.density = nx.density(g)
 
         self.logger.info("Getting degree distribution")
-        self.degree_distribution = dict(g.degree())
+        self.degree_distribution = dict(g.degree(weight="weight"))
         self.average_degree = (
             sum(self.degree_distribution.values()) / self.number_of_nodes
+        )
+        self.number_of_neighbors = dict(g.degree())
+        self.average_number_of_neighbors = (
+            sum(self.number_of_neighbors.values()) / self.number_of_nodes
         )
 
         self.logger.info("Getting connected components")
@@ -97,6 +101,7 @@ class BasicStatistics:
                 "number_of_nodes": [self.number_of_nodes],
                 "number_of_edges": [self.number_of_edges],
                 "average_degree": [self.average_degree],
+                "average_number_of_neighbors": [self.average_number_of_neighbors],
                 "density": [self.density],
                 "connected_components": [self.connected_components],
                 "largest_cc_rel_size": [self.largest_cc_rel_size],
@@ -113,7 +118,7 @@ class BasicStatistics:
         Node id is the index.
         """
         degree_df = pd.DataFrame(
-            self.degree_distribution.items(), columns=["node_id", "degree"]
+            self.degree_distribution.items(), columns=["node_id", "weight"]
         ).set_index("node_id")
         pagerank_df = pd.DataFrame(
             self.centrality_distributions["pagerank_distribution"].items(),
