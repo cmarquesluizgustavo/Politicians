@@ -69,10 +69,11 @@ class AuthorsMiner(BaseMiner):
             author = pd.read_csv(
                 f"{self.output_path}{year}.csv", sep=";", low_memory=False
             )
-            author = author[["idProposicao", "uriAutor", "nomeAutor"]]
+            author = author[["idProposicao", "uriAutor", "nomeAutor", "proponente"]]
             author["year"] = year
             authors = pd.concat([authors, author])
-
+            
+        authors = authors[authors["proponente"] == 1]
         authors = authors.dropna(subset=["uriAutor"])
         authors["type"] = authors["uriAutor"].apply(lambda x: x.split("/")[-2])
         authors["id"] = authors["uriAutor"].apply(lambda x: x.split("/")[-1])
@@ -102,4 +103,4 @@ class AuthorsMiner(BaseMiner):
 
 if __name__ == "__main__":
     miner = AuthorsMiner()
-    miner.mine()
+    miner.mine(target_years=list(range(1999, 2024)))
